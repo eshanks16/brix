@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brix Pizza - Authentic Brick Oven Pizza</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🍕 Brix Pizza</h1>
+            <p class="tagline">Brick oven perfection, delivered to your door</p>
+        </header>
+
+        <nav>
+            <a href="/" class="active">Home</a>
+            {{if .}}
+                <a href="/order">Order Now</a>
+                <a href="/orders">My Orders</a>
+                <a href="/logout" class="logout-link">Logout</a>
+            {{else}}
+                <a href="/login">Login</a>
+                <a href="/register">Register</a>
+            {{end}}
+        </nav>
+
+        <div class="hero-section">
+            {{if .}}
+                <h2>Welcome back, {{.Name}}! 👋</h2>
+                <p class="hero-text">Ready to order another delicious pizza?</p>
+                <a href="/order" class="btn-hero">Order Now</a>
+            {{else}}
+                <h2>Authentic Pizza, Made Fresh Daily</h2>
+                <p class="hero-text">Experience the taste of traditional brick oven pizza. Hand-crafted with love, baked to perfection.</p>
+                <div class="cta-buttons">
+                    <a href="/register" class="btn-hero">Get Started</a>
+                    <a href="/login" class="btn-hero-outline">Sign In</a>
+                </div>
+            {{end}}
+        </div>
+
+        <div class="showcase-section">
+            <h2>Our Pizza Styles</h2>
+            <div class="pizza-styles-grid">
+                <div class="pizza-card">
+                    <div class="pizza-emoji">🏙️</div>
+                    <h3>New York</h3>
+                    <p>Large, thin, hand-tossed crust with a perfect char. Foldable and delicious.</p>
+                </div>
+
+                <div class="pizza-card">
+                    <div class="pizza-emoji">🌆</div>
+                    <h3>Chicago Deep Dish</h3>
+                    <p>Thick, buttery crust with layers of cheese, toppings, and chunky tomato sauce.</p>
+                </div>
+
+                <div class="pizza-card">
+                    <div class="pizza-emoji">🏛️</div>
+                    <h3>Detroit</h3>
+                    <p>Square, thick crust with crispy, caramelized cheese edges. Midwest perfection.</p>
+                </div>
+
+                <div class="pizza-card">
+                    <div class="pizza-emoji">🇮🇹</div>
+                    <h3>Neapolitan</h3>
+                    <p>Authentic Italian thin crust, soft and tender with a slightly charred exterior.</p>
+                </div>
+
+                <div class="pizza-card">
+                    <div class="pizza-emoji">⛪</div>
+                    <h3>St. Louis</h3>
+                    <p>Cracker-thin crust with Provel cheese. Cut into squares, St. Louis style.</p>
+                </div>
+
+                <div class="pizza-card">
+                    <div class="pizza-emoji">🌴</div>
+                    <h3>California</h3>
+                    <p>Thin crust topped with fresh, gourmet ingredients. West coast innovation.</p>
+                </div>
+
+                <div class="pizza-card">
+                    <div class="pizza-emoji">🏖️</div>
+                    <h3>Sicilian</h3>
+                    <p>Thick, fluffy, square pizza with a focaccia-like texture. Traditional Italian.</p>
+                </div>
+
+                <div class="pizza-card">
+                    <div class="pizza-emoji">🏛️</div>
+                    <h3>Greek</h3>
+                    <p>Chewy, fluffy crust baked in a pan with olive oil. Topped with feta cheese and Mediterranean flavors.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="features-section">
+            <h2>Why Choose Brix Pizza?</h2>
+            <div class="features-grid">
+                <div class="feature">
+                    <div class="feature-icon">🔥</div>
+                    <h3>Brick Oven Baked</h3>
+                    <p>Every pizza is baked in our authentic brick oven at 800°F for that perfect char and flavor.</p>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">🌾</div>
+                    <h3>Fresh Ingredients</h3>
+                    <p>We use only the freshest, highest quality ingredients. Our dough is made fresh daily.</p>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">🎨</div>
+                    <h3>Custom Creations</h3>
+                    <p>Build your perfect pizza with our wide selection of toppings. Split toppings available!</p>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Fast Delivery</h3>
+                    <p>Hot, fresh pizza delivered to your door. Track your order in real-time.</p>
+                </div>
+            </div>
+        </div>
+
+        {{if not .}}
+        <div class="cta-section">
+            <h2>Ready to Order?</h2>
+            <p>Join thousands of satisfied customers. Create your account and get your first pizza today!</p>
+            <a href="/register" class="btn-hero">Create Account</a>
+        </div>
+        {{end}}
+    </div>
+</body>
+</html>

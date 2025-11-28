@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brix Pizza - Orders</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🍕 Brix Pizza</h1>
+            <p class="tagline">Brick oven perfection, delivered to your door</p>
+        </header>
+
+        <nav>
+            <a href="/">Home</a>
+            <a href="/order">Order Now</a>
+            <a href="/orders" class="active">My Orders</a>
+            <a href="/logout" class="logout-link">Logout</a>
+        </nav>
+
+        <div class="orders-list">
+            <h2>Recent Orders</h2>
+
+            {{if .}}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Order #</th>
+                            <th>Customer</th>
+                            <th>Phone</th>
+                            <th>Style</th>
+                            <th>Size</th>
+                            <th>Left Toppings</th>
+                            <th>Right Toppings</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .}}
+                        <tr>
+                            <td>{{.ID}}</td>
+                            <td>{{.CustomerName}}</td>
+                            <td>{{.CustomerPhone}}</td>
+                            <td>{{.PizzaStyle}}</td>
+                            <td>{{.Size}}</td>
+                            <td>{{if .LeftToppings}}{{.LeftToppings}}{{else}}-{{end}}</td>
+                            <td>{{if .RightToppings}}{{.RightToppings}}{{else}}-{{end}}</td>
+                            <td>${{printf "%.2f" .Total}}</td>
+                            <td><span class="status status-{{.Status}}">{{.Status}}</span></td>
+                            <td>{{.CreatedAt.Format "Jan 02, 15:04"}}</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            {{else}}
+                <p class="no-orders">No orders yet. <a href="/">Place your first order!</a></p>
+            {{end}}
+        </div>
+    </div>
+</body>
+</html>
