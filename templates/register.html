@@ -23,27 +23,27 @@
             <form action="/register" method="POST">
                 <div class="form-group">
                     <label for="first_name">First Name:</label>
-                    <input type="text" id="first_name" name="first_name" required>
+                    <input type="text" id="first_name" name="first_name" required minlength="2" maxlength="50" pattern="[A-Za-z\s\-']+" title="Please enter a valid first name (letters, spaces, hyphens, and apostrophes only)">
                 </div>
 
                 <div class="form-group">
                     <label for="last_name">Last Name:</label>
-                    <input type="text" id="last_name" name="last_name" required>
+                    <input type="text" id="last_name" name="last_name" required minlength="2" maxlength="50" pattern="[A-Za-z\s\-']+" title="Please enter a valid last name (letters, spaces, hyphens, and apostrophes only)">
                 </div>
 
                 <div class="form-group">
                     <label for="email">Email Address:</label>
-                    <input type="email" id="email" name="email" required>
+                    <input type="email" id="email" name="email" required maxlength="100" title="Please enter a valid email address">
                 </div>
 
                 <div class="form-group">
                     <label for="phone">Phone Number:</label>
-                    <input type="tel" id="phone" name="phone" required>
+                    <input type="tel" id="phone" name="phone" required pattern="[\d\s\-\(\)\+]+" minlength="10" maxlength="20" placeholder="123-456-7890" title="Please enter a valid phone number (10-20 digits, may include spaces, dashes, parentheses, or +)">
                 </div>
 
                 <div class="form-group">
                     <label for="password">Password:</label>
-                    <input type="password" id="password" name="password" required minlength="6">
+                    <input type="password" id="password" name="password" required minlength="6" maxlength="100" title="Password must be at least 6 characters long">
                 </div>
 
                 <button type="submit" class="btn-submit">Register</button>
