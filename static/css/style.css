@@ -6,7 +6,7 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%);
+    background: linear-gradient(135deg, #C0392B 0%, #A93226 100%);
     min-height: 100vh;
     padding: 20px;
 }
@@ -14,14 +14,14 @@ body {
 .container {
     max-width: 1200px;
     margin: 0 auto;
-    background: #FFF7ED;
+    background: #FAF4E6;
     border-radius: 15px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     overflow: hidden;
 }
 
 header {
-    background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%);
+    background: linear-gradient(135deg, #C0392B 0%, #A93226 100%);
     color: white;
     padding: 40px;
     text-align: center;
@@ -38,7 +38,7 @@ header h1 {
 }
 
 nav {
-    background: #1F2937;
+    background: #2E2E2E;
     display: flex;
     justify-content: center;
     gap: 0;
@@ -53,16 +53,16 @@ nav a {
 
 nav a:hover,
 nav a.active {
-    background: #F59E0B;
+    background: #3A5F3A;
 }
 
 nav a.logout-link {
     margin-left: auto;
-    background: #FF6B6B;
+    background: #C0392B;
 }
 
 nav a.logout-link:hover {
-    background: #EF4444;
+    background: #A93226;
 }
 
 .order-form,
@@ -72,7 +72,7 @@ nav a.logout-link:hover {
 }
 
 .welcome-message {
-    color: #0D9488;
+    color: #3A5F3A;
     font-size: 1.1em;
     margin-bottom: 20px;
 }
@@ -93,7 +93,7 @@ nav a.logout-link:hover {
 }
 
 .auth-link a {
-    color: #0D9488;
+    color: #C0392B;
     text-decoration: none;
     font-weight: 600;
 }
@@ -134,11 +134,11 @@ select {
 input:focus,
 select:focus {
     outline: none;
-    border-color: #0D9488;
+    border-color: #3A5F3A;
 }
 
 .btn-submit {
-    background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%);
+    background: linear-gradient(135deg, #3A5F3A 0%, #2F4D2F 100%);
     color: white;
     border: none;
     padding: 15px 40px;
@@ -151,7 +151,7 @@ select:focus {
 
 .btn-submit:hover {
     transform: translateY(-2px);
-    box-shadow: 0 5px 20px rgba(13, 148, 136, 0.4);
+    box-shadow: 0 5px 20px rgba(58, 95, 58, 0.4);
 }
 
 .toppings-section {
@@ -209,7 +209,7 @@ select:focus {
     width: 20px;
     height: 20px;
     cursor: pointer;
-    accent-color: #0D9488;
+    accent-color: #3A5F3A;
 }
 
 table {
@@ -269,7 +269,7 @@ tr:hover {
 }
 
 .no-orders a {
-    color: #0D9488;
+    color: #C0392B;
     text-decoration: none;
     font-weight: 600;
 }
@@ -283,6 +283,13 @@ tr:hover {
     text-align: center;
     padding: 60px 40px;
     background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.mascot-image {
+    width: 200px;
+    height: 200px;
+    margin-bottom: 20px;
+    object-fit: contain;
 }
 
 .hero-section h2 {
@@ -302,7 +309,7 @@ tr:hover {
 
 .btn-hero {
     display: inline-block;
-    background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%);
+    background: linear-gradient(135deg, #C0392B 0%, #A93226 100%);
     color: white;
     padding: 15px 40px;
     border-radius: 8px;
@@ -315,25 +322,25 @@ tr:hover {
 
 .btn-hero:hover {
     transform: translateY(-2px);
-    box-shadow: 0 5px 20px rgba(13, 148, 136, 0.4);
+    box-shadow: 0 5px 20px rgba(192, 57, 43, 0.4);
 }
 
 .btn-hero-outline {
     display: inline-block;
     background: transparent;
-    color: #0D9488;
+    color: #3A5F3A;
     padding: 15px 40px;
     border-radius: 8px;
     text-decoration: none;
     font-weight: 600;
     font-size: 1.1em;
-    border: 2px solid #0D9488;
+    border: 2px solid #3A5F3A;
     transition: all 0.2s;
     margin: 0 10px;
 }
 
 .btn-hero-outline:hover {
-    background: #0D9488;
+    background: #3A5F3A;
     color: white;
 }
 
@@ -427,7 +434,7 @@ tr:hover {
 .cta-section {
     text-align: center;
     padding: 60px 40px;
-    background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%);
+    background: linear-gradient(135deg, #3A5F3A 0%, #2F4D2F 100%);
     color: white;
 }
 
@@ -453,6 +460,11 @@ tr:hover {
 
     th, td {
         padding: 8px;
+    }
+
+    .mascot-image {
+        width: 150px;
+        height: 150px;
     }
 
     .hero-section h2 {

@@ -79,47 +79,90 @@ func initDB() (*sql.DB, error) {
 		return nil, err
 	}
 
-	// Drop old tables if they exist (for development - removes all data)
-	// Comment out these lines in production to preserve data
-	database.Exec("DROP TABLE IF EXISTS orders")
-	database.Exec("DROP TABLE IF EXISTS users")
-
-	// Create users table
-	createUsersTableSQL := `CREATE TABLE IF NOT EXISTS users (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		first_name TEXT NOT NULL,
-		last_name TEXT NOT NULL,
-		email TEXT UNIQUE NOT NULL,
-		phone TEXT NOT NULL,
-		password_hash TEXT NOT NULL,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-	);`
-
-	_, err = database.Exec(createUsersTableSQL)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create orders table
-	createOrdersTableSQL := `CREATE TABLE IF NOT EXISTS orders (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		user_id INTEGER NOT NULL,
-		pizza_style TEXT NOT NULL,
-		size TEXT NOT NULL,
-		left_toppings TEXT,
-		right_toppings TEXT,
-		total REAL NOT NULL,
-		status TEXT DEFAULT 'pending',
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		FOREIGN KEY (user_id) REFERENCES users(id)
-	);`
-
-	_, err = database.Exec(createOrdersTableSQL)
+	// Run migrations
+	err = runMigrations(database)
 	if err != nil {
 		return nil, err
 	}
 
 	return database, nil
+}
+
+func runMigrations(database *sql.DB) error {
+	// Create migrations table to track applied migrations
+	createMigrationsTableSQL := `CREATE TABLE IF NOT EXISTS migrations (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		name TEXT UNIQUE NOT NULL,
+		applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	);`
+
+	_, err := database.Exec(createMigrationsTableSQL)
+	if err != nil {
+		return err
+	}
+
+	// Define all migrations in order
+	migrations := []struct {
+		name string
+		sql  string
+	}{
+		{
+			name: "001_create_users_table",
+			sql: `CREATE TABLE IF NOT EXISTS users (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				first_name TEXT NOT NULL,
+				last_name TEXT NOT NULL,
+				email TEXT UNIQUE NOT NULL,
+				phone TEXT NOT NULL,
+				password_hash TEXT NOT NULL,
+				created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			);`,
+		},
+		{
+			name: "002_create_orders_table",
+			sql: `CREATE TABLE IF NOT EXISTS orders (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				user_id INTEGER NOT NULL,
+				pizza_style TEXT NOT NULL,
+				size TEXT NOT NULL,
+				left_toppings TEXT,
+				right_toppings TEXT,
+				total REAL NOT NULL,
+				status TEXT DEFAULT 'pending',
+				created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+				FOREIGN KEY (user_id) REFERENCES users(id)
+			);`,
+		},
+	}
+
+	// Apply each migration if not already applied
+	for _, migration := range migrations {
+		var count int
+		err := database.QueryRow("SELECT COUNT(*) FROM migrations WHERE name = ?", migration.name).Scan(&count)
+		if err != nil {
+			return err
+		}
+
+		if count == 0 {
+			// Migration not applied yet
+			log.Printf("Applying migration: %s", migration.name)
+
+			_, err = database.Exec(migration.sql)
+			if err != nil {
+				return err
+			}
+
+			// Record migration as applied
+			_, err = database.Exec("INSERT INTO migrations (name) VALUES (?)", migration.name)
+			if err != nil {
+				return err
+			}
+
+			log.Printf("Migration applied: %s", migration.name)
+		}
+	}
+
+	return nil
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
