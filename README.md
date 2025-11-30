@@ -15,7 +15,8 @@ A demo pizza ordering application built with Go and SQLite.
 ## Prerequisites
 
 - Go 1.25 or higher
-- SQLite3 (usually pre-installed on macOS/Linux)
+- SQLite3 (for development, usually pre-installed on macOS/Linux)
+- MySQL 5.7+ or MariaDB 10.2+ (optional, for production)
 
 ## Setup
 
@@ -25,7 +26,15 @@ go mod download
 ```
 
 2. Run the application:
+
+**Development (SQLite):**
 ```bash
+go run main.go
+```
+
+**Production (MySQL):**
+```bash
+export DATABASE_URL="user:password@tcp(localhost:3306)/brix_pizza"
 go run main.go
 ```
 
@@ -35,6 +44,51 @@ http://localhost:8080
 ```
 
 4. Create an account by clicking "Register" and filling out the form
+
+## Database Configuration
+
+The application supports both SQLite (development) and MySQL (production) databases.
+
+### SQLite (Default)
+
+SQLite is used by default when no `DATABASE_URL` environment variable is set. This is suitable for development and testing but **not recommended for production**.
+
+When using SQLite, you'll see a warning on startup:
+```
+⚠️  WARNING: Using SQLite database (not recommended for production)
+⚠️  Set DATABASE_URL environment variable to use MySQL
+```
+
+### MySQL (Production)
+
+To use MySQL, set the `DATABASE_URL` environment variable:
+
+**Format:**
+```
+DATABASE_URL="username:password@tcp(host:port)/database_name"
+```
+
+**Examples:**
+```bash
+# Local MySQL
+export DATABASE_URL="root:password@tcp(localhost:3306)/brix_pizza"
+
+# Remote MySQL
+export DATABASE_URL="brix_user:secure_password@tcp(db.example.com:3306)/brix_pizza"
+
+# With additional parameters
+export DATABASE_URL="user:pass@tcp(localhost:3306)/brix_pizza?charset=utf8mb4&parseTime=True&loc=Local"
+```
+
+**Setting up MySQL database:**
+```sql
+CREATE DATABASE brix_pizza CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'brix_user'@'localhost' IDENTIFIED BY 'your_password';
+GRANT ALL PRIVILEGES ON brix_pizza.* TO 'brix_user'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+The application will automatically create all necessary tables using migrations when it starts.
 
 ## Project Structure
 
@@ -98,12 +152,45 @@ The application uses the following tables:
 | id             | INTEGER  | Primary key (auto-increment)     |
 | user_id        | INTEGER  | Foreign key to users table       |
 | pizza_style    | TEXT     | Pizza style (e.g., Chicago)      |
-| size           | TEXT     | Size (small/medium/large/xl)     |
+| size           | TEXT     | Size name (e.g., Medium)         |
 | left_toppings  | TEXT     | Toppings for left side           |
 | right_toppings | TEXT     | Toppings for right side          |
 | total          | REAL     | Order total in dollars           |
 | status         | TEXT     | Order status (default: pending)  |
 | created_at     | DATETIME | Order timestamp                  |
+
+### pizza_styles
+| Column        | Type     | Description                      |
+|---------------|----------|----------------------------------|
+| id            | INTEGER  | Primary key (auto-increment)     |
+| name          | TEXT     | Style name (unique)              |
+| description   | TEXT     | Style description                |
+| emoji         | TEXT     | Emoji icon for style             |
+| active        | INTEGER  | 1=active, 0=inactive (default: 1)|
+| display_order | INTEGER  | Display order (default: 0)       |
+| created_at    | DATETIME | Creation timestamp               |
+
+### pizza_sizes
+| Column        | Type     | Description                      |
+|---------------|----------|----------------------------------|
+| id            | INTEGER  | Primary key (auto-increment)     |
+| name          | TEXT     | Size name (unique)               |
+| diameter      | TEXT     | Size diameter (e.g., "12\"")     |
+| base_price    | REAL     | Base price for this size         |
+| display_order | INTEGER  | Display order (default: 0)       |
+| active        | INTEGER  | 1=active, 0=inactive (default: 1)|
+| created_at    | DATETIME | Creation timestamp               |
+
+### toppings
+| Column        | Type     | Description                      |
+|---------------|----------|----------------------------------|
+| id            | INTEGER  | Primary key (auto-increment)     |
+| name          | TEXT     | Topping name (unique)            |
+| price         | REAL     | Price per topping                |
+| category      | TEXT     | Category (meat/veggie/cheese)    |
+| active        | INTEGER  | 1=active, 0=inactive (default: 1)|
+| display_order | INTEGER  | Display order (default: 0)       |
+| created_at    | DATETIME | Creation timestamp               |
 
 ### migrations
 | Column     | Type     | Description                      |
@@ -123,6 +210,30 @@ The application uses a simple migration system to manage database schema changes
 3. The app checks which migrations have been applied
 4. Only new migrations are executed
 5. Once applied, a migration is recorded in the `migrations` table
+
+### Kubernetes-Safe Initialization
+
+The application is designed to safely handle multiple pods starting simultaneously in a Kubernetes deployment:
+
+- **Database-Level Locking**: The seed data migration (002_seed_menu_data) uses database transactions with locking to prevent race conditions
+- **Idempotent Seeding**: Before inserting seed data, the application checks if data already exists, preventing duplicates
+- **Transaction Safety**: All seed operations are wrapped in transactions that roll back on failure
+- **Concurrent Pod Starts**: Multiple pods can start at the same time without corrupting the database or causing duplicate menu items
+
+The `seedMenuData()` function uses:
+- SQLite: Exclusive transactions (BEGIN EXCLUSIVE) automatically prevent concurrent writes
+- MySQL: Row-level locks (`FOR UPDATE`) ensure only one pod seeds data at a time
+
+### Development Database Reset
+
+During active development, you can reset the database to start fresh:
+
+```bash
+rm db/orders.db
+go run main.go
+```
+
+The application will automatically recreate all tables and seed the menu data on startup.
 
 ### Adding a New Migration
 
