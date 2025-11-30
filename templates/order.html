@@ -22,20 +22,15 @@
 
         <div class="order-form">
             <h2>Build Your Pizza</h2>
-            <p class="welcome-message">Welcome, {{.Name}}!</p>
+            <p class="welcome-message">Welcome, {{.Session.Name}}!</p>
             <form action="/place-order" method="POST">
                 <div class="form-group">
                     <label for="pizza_style">Pizza Style:</label>
                     <select id="pizza_style" name="pizza_style" required>
                         <option value="">-- Select Style --</option>
-                        <option value="Chicago Deep Dish">Chicago Deep Dish</option>
-                        <option value="New York">New York</option>
-                        <option value="St. Louis">St. Louis</option>
-                        <option value="Detroit">Detroit</option>
-                        <option value="Neapolitan">Neapolitan</option>
-                        <option value="California">California</option>
-                        <option value="Sicilian">Sicilian</option>
-                        <option value="Greek">Greek</option>
+                        {{range .PizzaStyles}}
+                        <option value="{{.Name}}">{{.Emoji}} {{.Name}} - {{.Description}}</option>
+                        {{end}}
                     </select>
                 </div>
 
@@ -43,15 +38,14 @@
                     <label for="size">Size:</label>
                     <select id="size" name="size" required>
                         <option value="">-- Select Size --</option>
-                        <option value="small">Small (10") - $12.99</option>
-                        <option value="medium">Medium (12") - $16.99</option>
-                        <option value="large">Large (14") - $20.99</option>
-                        <option value="extra_large">Extra Large (16") - $24.99</option>
+                        {{range .PizzaSizes}}
+                        <option value="{{.ID}}">{{.Name}} ({{.Diameter}}) - ${{printf "%.2f" .BasePrice}}</option>
+                        {{end}}
                     </select>
                 </div>
 
                 <div class="toppings-section">
-                    <h3>Select Your Toppings ($1.50 each)</h3>
+                    <h3>Select Your Toppings</h3>
                     <p class="toppings-info">Choose which side you want each topping on, or select both for the whole pizza</p>
 
                     <div class="toppings-grid">
@@ -59,65 +53,11 @@
                         <div class="topping-header">Left Side</div>
                         <div class="topping-header">Right Side</div>
 
-                        <div class="topping-name">Pepperoni</div>
-                        <div class="topping-checkbox"><input type="checkbox" name="left_toppings[]" value="Pepperoni"></div>
-                        <div class="topping-checkbox"><input type="checkbox" name="right_toppings[]" value="Pepperoni"></div>
-
-                        <div class="topping-name">Italian Sausage</div>
-                        <div class="topping-checkbox"><input type="checkbox" name="left_toppings[]" value="Italian Sausage"></div>
-                        <div class="topping-checkbox"><input type="checkbox" name="right_toppings[]" value="Italian Sausage"></div>
-
-                        <div class="topping-name">Mushrooms</div>
-                        <div class="topping-checkbox"><input type="checkbox" name="left_toppings[]" value="Mushrooms"></div>
-                        <div class="topping-checkbox"><input type="checkbox" name="right_toppings[]" value="Mushrooms"></div>
-
-                        <div class="topping-name">Green Peppers</div>
-                        <div class="topping-checkbox"><input type="checkbox" name="left_toppings[]" value="Green Peppers"></div>
-                        <div class="topping-checkbox"><input type="checkbox" name="right_toppings[]" value="Green Peppers"></div>
-
-                        <div class="topping-name">Onions</div>
-                        <div class="topping-checkbox"><input type="checkbox" name="left_toppings[]" value="Onions"></div>
-                        <div class="topping-checkbox"><input type="checkbox" name="right_toppings[]" value="Onions"></div>
-
-                        <div class="topping-name">Black Olives</div>
-                        <div class="topping-checkbox"><input type="checkbox" name="left_toppings[]" value="Black Olives"></div>
-                        <div class="topping-checkbox"><input type="checkbox" name="right_toppings[]" value="Black Olives"></div>
-
-                        <div class="topping-name">Extra Cheese</div>
-                        <div class="topping-checkbox"><input type="checkbox" name="left_toppings[]" value="Extra Cheese"></div>
-                        <div class="topping-checkbox"><input type="checkbox" name="right_toppings[]" value="Extra Cheese"></div>
-
-                        <div class="topping-name">Bacon</div>
-                        <div class="topping-checkbox"><input type="checkbox" name="left_toppings[]" value="Bacon"></div>
-                        <div class="topping-checkbox"><input type="checkbox" name="right_toppings[]" value="Bacon"></div>
-
-                        <div class="topping-name">Ham</div>
-                        <div class="topping-checkbox"><input type="checkbox" name="left_toppings[]" value="Ham"></div>
-                        <div class="topping-checkbox"><input type="checkbox" name="right_toppings[]" value="Ham"></div>
-
-                        <div class="topping-name">Pineapple</div>
-                        <div class="topping-checkbox"><input type="checkbox" name="left_toppings[]" value="Pineapple"></div>
-                        <div class="topping-checkbox"><input type="checkbox" name="right_toppings[]" value="Pineapple"></div>
-
-                        <div class="topping-name">Jalapeños</div>
-                        <div class="topping-checkbox"><input type="checkbox" name="left_toppings[]" value="Jalapeños"></div>
-                        <div class="topping-checkbox"><input type="checkbox" name="right_toppings[]" value="Jalapeños"></div>
-
-                        <div class="topping-name">Spinach</div>
-                        <div class="topping-checkbox"><input type="checkbox" name="left_toppings[]" value="Spinach"></div>
-                        <div class="topping-checkbox"><input type="checkbox" name="right_toppings[]" value="Spinach"></div>
-
-                        <div class="topping-name">Fresh Tomatoes</div>
-                        <div class="topping-checkbox"><input type="checkbox" name="left_toppings[]" value="Fresh Tomatoes"></div>
-                        <div class="topping-checkbox"><input type="checkbox" name="right_toppings[]" value="Fresh Tomatoes"></div>
-
-                        <div class="topping-name">Garlic</div>
-                        <div class="topping-checkbox"><input type="checkbox" name="left_toppings[]" value="Garlic"></div>
-                        <div class="topping-checkbox"><input type="checkbox" name="right_toppings[]" value="Garlic"></div>
-
-                        <div class="topping-name">Basil</div>
-                        <div class="topping-checkbox"><input type="checkbox" name="left_toppings[]" value="Basil"></div>
-                        <div class="topping-checkbox"><input type="checkbox" name="right_toppings[]" value="Basil"></div>
+                        {{range .Toppings}}
+                        <div class="topping-name">{{.Name}} (${{printf "%.2f" .Price}})</div>
+                        <div class="topping-checkbox"><input type="checkbox" name="left_toppings[]" value="{{.Name}}"></div>
+                        <div class="topping-checkbox"><input type="checkbox" name="right_toppings[]" value="{{.Name}}"></div>
+                        {{end}}
                     </div>
                 </div>
 
