@@ -9,8 +9,10 @@ A demo pizza ordering application built with Go and SQLite.
 - Order pizza with customizable toppings (split left/right)
 - 8 different pizza styles (New York, Chicago, Detroit, etc.)
 - View order history
+- **REST API endpoints** for programmatic access
 - SQLite database with automatic migrations
 - Clean, responsive UI with brick oven theme
+- Database-driven menu system
 
 ## Prerequisites
 
@@ -32,11 +34,20 @@ go mod download
 go run main.go
 ```
 
-**Production (MySQL):**
+Or build and run:
 ```bash
+go build -o brix-pizza
+./brix-pizza
+```
+
+**Production (MySQL with API Key):**
+```bash
+export BRIX_API_KEY="your-secure-api-key-here"
 export DATABASE_URL="user:password@tcp(localhost:3306)/brix_pizza"
 go run main.go
 ```
+
+**Note:** Set `BRIX_API_KEY` environment variable to secure the REST API endpoints with Bearer token authentication.
 
 3. Open your browser and navigate to:
 ```
@@ -44,6 +55,29 @@ http://localhost:8080
 ```
 
 4. Create an account by clicking "Register" and filling out the form
+
+## Environment Variables
+
+The application can be configured using the following environment variables:
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `BRIX_API_KEY` | No | _(none)_ | API key for securing REST API endpoints. If not set, API runs in unsecured mode (dev only). |
+| `DATABASE_URL` | No | SQLite | MySQL connection string in format: `user:password@tcp(host:port)/database` |
+
+**Example configuration:**
+```bash
+# For production with MySQL and API security
+export BRIX_API_KEY="your-secure-api-key-here"
+export DATABASE_URL="brix_user:password@tcp(localhost:3306)/brix_pizza"
+go run main.go
+```
+
+**Generate a secure API key:**
+```bash
+# Generate a random 32-character hex key
+openssl rand -hex 32
+```
 
 ## Database Configuration
 
@@ -94,20 +128,31 @@ The application will automatically create all necessary tables using migrations 
 
 ```
 brix-pizza/
-├── main.go              # Main application with HTTP handlers and migrations
-├── templates/           # HTML templates
-│   ├── home.html       # Landing page
-│   ├── register.html   # User registration
-│   ├── login.html      # User login
-│   ├── order.html      # Order form
-│   └── orders.html     # Orders dashboard
-├── static/             # Static assets
+├── main.go                      # Application entry point
+├── internal/                    # Internal packages
+│   ├── models/
+│   │   └── models.go           # Data structures and types
+│   ├── database/
+│   │   └── database.go         # Database initialization and migrations
+│   ├── handlers/
+│   │   └── handlers.go         # HTML page handlers
+│   └── api/
+│       └── api.go              # REST API handlers
+├── templates/                   # HTML templates
+│   ├── home.html               # Landing page
+│   ├── register.html           # User registration
+│   ├── login.html              # User login
+│   ├── order.html              # Order form
+│   └── orders.html             # Orders dashboard
+├── static/                      # Static assets
 │   ├── css/
-│   │   └── style.css   # Application styles
-│   └── brix.png        # Mascot image
-├── db/                 # Database directory (created on first run)
-│   └── orders.db       # SQLite database
-└── go.mod              # Go module definition
+│   │   └── style.css           # Application styles
+│   └── brix.png                # Mascot image
+├── docs/                        # Documentation
+│   └── API_EXAMPLES.md         # API usage examples
+├── db/                          # Database directory (created on first run)
+│   └── orders.db               # SQLite database
+└── go.mod                      # Go module definition
 ```
 
 ## Usage
@@ -129,7 +174,172 @@ brix-pizza/
 
 ### View Orders
 
-Navigate to "My Orders" to see your order history with order details and status.
+Navigate to "My Orders" to see your order history with order details.
+
+## REST API
+
+The application provides REST API endpoints for programmatic access. All API endpoints are under the `/api/*` path.
+
+**🔐 Authentication:** API endpoints require a Bearer token set via the `BRIX_API_KEY` environment variable.
+
+**📖 For detailed examples and complete workflows, see [docs/API_EXAMPLES.md](docs/API_EXAMPLES.md)**
+
+### Get Menu
+
+Retrieve available pizza styles, sizes, and toppings.
+
+**Endpoint:** `GET /api/menu`
+
+**Authentication:** Bearer token in `Authorization` header
+
+**Example:**
+```bash
+curl -H "Authorization: Bearer your-api-key-here" \
+  http://localhost:8080/api/menu
+```
+
+Or using an environment variable:
+```bash
+export API_KEY="your-api-key-here"
+curl -H "Authorization: Bearer $API_KEY" \
+  http://localhost:8080/api/menu
+```
+
+**Response:**
+```json
+{
+  "pizza_styles": [
+    {
+      "id": 1,
+      "name": "New York Style",
+      "description": "Thin, crispy crust with a wide diameter",
+      "emoji": "🗽"
+    }
+  ],
+  "pizza_sizes": [
+    {
+      "id": 1,
+      "name": "Small",
+      "diameter": "10\"",
+      "base_price": 12.99
+    }
+  ],
+  "toppings": [
+    {
+      "id": 1,
+      "name": "Pepperoni",
+      "price": 1.50,
+      "category": "meat"
+    }
+  ]
+}
+```
+
+### Create Order
+
+Place an order for a user (admin operation).
+
+**Endpoint:** `POST /api/orders`
+
+**Authentication:** Bearer token in `Authorization` header
+
+**Request Body:**
+```json
+{
+  "user_id": 1,
+  "pizza_style": "New York Style",
+  "size_id": 2,
+  "left_toppings": ["Pepperoni", "Mushrooms"],
+  "right_toppings": ["Pepperoni", "Bell Peppers"]
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:8080/api/orders \
+  -H "Authorization: Bearer your-api-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": 1,
+    "pizza_style": "New York Style",
+    "size_id": 2,
+    "left_toppings": ["Pepperoni", "Mushrooms"],
+    "right_toppings": ["Pepperoni", "Bell Peppers"]
+  }'
+```
+
+**Response:**
+
+```json
+{
+  "id": 123,
+  "pizza_style": "New York Style",
+  "size": "Medium",
+  "left_toppings": "Pepperoni, Mushrooms",
+  "right_toppings": "Pepperoni, Bell Peppers",
+  "total": 22.99,
+  "status": "pending",
+  "created_at": "2025-12-01T10:30:00Z"
+}
+```
+
+### List Orders
+
+Get order history for a specific user or all orders (admin operation).
+
+**Endpoint:** `GET /api/orders/list?user_id=1` (optional user_id parameter)
+
+**Authentication:** Bearer token in `Authorization` header
+
+**Example (specific user):**
+
+```bash
+curl -H "Authorization: Bearer your-api-key-here" \
+  http://localhost:8080/api/orders/list?user_id=1
+```
+
+**Example (all orders):**
+
+```bash
+curl -H "Authorization: Bearer your-api-key-here" \
+  http://localhost:8080/api/orders/list
+```
+
+**Response:**
+
+```json
+[
+  {
+    "id": 123,
+    "pizza_style": "New York Style",
+    "size": "Medium",
+    "left_toppings": "Pepperoni, Mushrooms",
+    "right_toppings": "Pepperoni, Bell Peppers",
+    "total": 22.99,
+    "status": "pending",
+    "created_at": "2025-12-01T10:30:00Z"
+  }
+]
+```
+
+### API Error Responses
+
+All API endpoints return JSON error messages with appropriate HTTP status codes:
+
+```json
+{
+  "error": "Invalid email or password"
+}
+```
+
+Common status codes:
+
+- `200 OK` - Success
+- `201 Created` - Order created successfully
+- `400 Bad Request` - Invalid input
+- `401 Unauthorized` - Authentication failed
+- `405 Method Not Allowed` - Wrong HTTP method
+- `500 Internal Server Error` - Server error
 
 ## Database Schema
 
@@ -237,7 +447,7 @@ The application will automatically recreate all tables and seed the menu data on
 
 ### Adding a New Migration
 
-To add a new migration, edit the `runMigrations()` function in [main.go](main.go):
+To add a new migration, edit the `runMigrations()` function in [internal/database/database.go](internal/database/database.go):
 
 ```go
 migrations := []struct {
