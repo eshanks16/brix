@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: brix-pizza
+  namespace: brix
+  labels:
+    app: brix-pizza
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: brix-pizza
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: brix-pizza
+    spec:
+      containers:
+      - name: brix-pizza
+        # Replace with your container registry path
+        image: brix-pizza:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        env:
+        - name: PORT
+          valueFrom:
+            configMapKeyRef:
+              name: brix-pizza-config
+              key: PORT
+        - name: BRIX_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: brix-pizza-secrets
+              key: api-key
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: brix-pizza-secrets
+              key: database-url
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: brix-pizza-pdb
+  namespace: brix
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: brix-pizza

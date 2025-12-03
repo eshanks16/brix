@@ -4,9 +4,15 @@ import (
 	"brix-pizza/internal/api"
 	"brix-pizza/internal/database"
 	"brix-pizza/internal/handlers"
+	"brix-pizza/internal/health"
+	"context"
 	"html/template"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 func main() {
@@ -38,10 +44,54 @@ func main() {
 	http.HandleFunc("/api/orders", api.CreateOrderHandler)
 	http.HandleFunc("/api/orders/list", api.GetOrdersHandler)
 
+	// Health Check Routes (for Kubernetes probes)
+	http.HandleFunc("/health/live", health.LivenessHandler)
+	http.HandleFunc("/health/ready", health.ReadinessHandler(db))
+
 	// Static files
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
-	log.Println("🍕 Brix Pizza is running on http://localhost:8080")
-	log.Println("📡 API available at http://localhost:8080/api/*")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	// Get port from environment variable (default: 8080)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	addr := ":" + port
+
+	// Create HTTP server with timeouts
+	srv := &http.Server{
+		Addr:         addr,
+		Handler:      nil, // use DefaultServeMux
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	// Start server in a goroutine
+	go func() {
+		log.Printf("🍕 Brix Pizza is running on http://0.0.0.0:%s", port)
+		log.Printf("📡 API available at http://0.0.0.0:%s/api/*", port)
+		log.Printf("💚 Health checks: /health/live (liveness) and /health/ready (readiness)")
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Server failed to start: %v", err)
+		}
+	}()
+
+	// Wait for interrupt signal to gracefully shutdown the server
+	quit := make(chan os.Signal, 1)
+	// Capture SIGINT (Ctrl+C) and SIGTERM (Kubernetes pod termination)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("Shutting down server...")
+
+	// Create a context with timeout for shutdown
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Attempt graceful shutdown
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Printf("Server forced to shutdown: %v", err)
+	}
+
+	log.Println("Server stopped")
 }

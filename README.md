@@ -62,6 +62,7 @@ The application can be configured using the following environment variables:
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
+| `PORT` | No | `8080` | HTTP server port. Useful for Kubernetes deployments. |
 | `BRIX_API_KEY` | No | _(none)_ | API key for securing REST API endpoints. If not set, API runs in unsecured mode (dev only). |
 | `DATABASE_URL` | No | SQLite | MySQL connection string in format: `user:password@tcp(host:port)/database` |
 
@@ -486,6 +487,77 @@ rm db/orders.db
 ```
 
 **Warning:** This will delete all data including users and orders!
+
+## Kubernetes Deployment
+
+Brix Pizza is production-ready and can be deployed to Kubernetes with health checks, graceful shutdown, and horizontal pod autoscaling.
+
+### Quick Start
+
+1. **Build Docker image:**
+   ```bash
+   cd deployment
+   docker build -t your-registry/brix-pizza:latest -f Dockerfile ..
+   docker push your-registry/brix-pizza:latest
+   ```
+
+2. **Create secrets:**
+   ```bash
+   kubectl create secret generic brix-pizza-secrets \
+     --from-literal=api-key=$(openssl rand -hex 32) \
+     --from-literal=database-url="user:pass@tcp(mysql-host:3306)/brix_pizza" \
+     -n brix
+   ```
+
+3. **Deploy:**
+   ```bash
+   kubectl apply -f deployment/k8s/namespace.yaml
+   kubectl apply -f deployment/k8s/configmap.yaml
+   kubectl apply -f deployment/k8s/deployment.yaml
+   kubectl apply -f deployment/k8s/service.yaml
+   ```
+
+4. **Verify:**
+   ```bash
+   kubectl get pods -n brix
+   kubectl get svc brix-pizza -n brix
+   ```
+
+### Features
+
+- **Health Checks**: Liveness (`/health/live`) and readiness (`/health/ready`) probes
+- **Graceful Shutdown**: Clean termination handling for zero-downtime deployments
+- **Horizontal Pod Autoscaling**: Automatic scaling based on CPU usage (optional)
+- **Resource Limits**: Configurable CPU and memory limits per pod
+- **Security**: Runs as non-root user with security context
+- **High Availability**: 3 replicas with pod disruption budget
+
+### Deployment Structure
+
+```
+deployment/
+├── Dockerfile                  # Multi-stage container build
+├── .dockerignore              # Files excluded from image
+└── k8s/
+    ├── namespace.yaml         # Kubernetes namespace (brix)
+    ├── configmap.yaml         # Non-sensitive configuration
+    ├── secret.yaml            # Secret template (API key, DB credentials)
+    ├── deployment.yaml        # Application deployment (3 replicas)
+    ├── service.yaml           # LoadBalancer service
+    ├── hpa.yaml               # Horizontal pod autoscaler (optional)
+    └── README.md              # Detailed deployment guide
+```
+
+### Prerequisites
+
+- Kubernetes cluster (1.19+)
+- MySQL database (AWS RDS, Google Cloud SQL, or in-cluster)
+- Container registry (Docker Hub, GCR, ECR)
+- kubectl configured
+
+### Documentation
+
+For detailed deployment instructions, troubleshooting, and production best practices, see **[deployment/k8s/README.md](deployment/k8s/README.md)**.
 
 ## License
 

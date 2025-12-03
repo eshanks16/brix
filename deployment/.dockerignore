@@ -1,0 +1,36 @@
+# Git files
+.git
+.gitignore
+
+# Database files (SQLite - not needed in container)
+db/
+*.db
+
+# Kubernetes manifests (not needed in image)
+deployment/k8s/
+
+# Documentation
+*.md
+docs/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+brix-pizza
+*.exe
+
+# Go test files
+*_test.go
+
+# Temporary files
+tmp/
+temp/

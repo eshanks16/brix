@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: brix-pizza-config
+  namespace: brix
+data:
+  PORT: "8080"
