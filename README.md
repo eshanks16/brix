@@ -488,6 +488,80 @@ rm db/orders.db
 
 **Warning:** This will delete all data including users and orders!
 
+## Testing
+
+Brix Pizza includes comprehensive unit tests for all packages. Tests use the same database migrations as production to ensure consistency.
+
+### Running Tests
+
+```bash
+# Run all tests
+make test
+
+# Run tests with verbose output
+make test-verbose
+
+# Generate coverage report (creates coverage.html)
+make test-coverage
+
+# Or use go test directly
+go test ./internal/... -v
+go test ./internal/... -race -coverprofile=coverage.out
+```
+
+### Test Coverage
+
+- **Health package**: 100% coverage (3 tests)
+- **Handlers package**: 80.3% coverage (19 tests)
+- **API package**: 78.8% coverage (12 tests)
+- **Database package**: 63.2% coverage (3 tests)
+- **Overall**: 76.7% coverage
+
+### Test Structure
+
+Tests follow Go best practices:
+
+- Each package has its own `*_test.go` files
+- Database tests use in-memory SQLite for speed
+- Test helpers in `internal/database/testing.go` reuse production migration code
+- All tests can run in parallel with `-race` flag
+
+**Example test:**
+
+```go
+func TestMenuHandler_Success(t *testing.T) {
+    // Setup: Use real database initialization
+    db := database.InitTestDB(t)
+    defer db.Close()
+
+    // Test the handler
+    req := httptest.NewRequest(http.MethodGet, "/api/menu", nil)
+    w := httptest.NewRecorder()
+    MenuHandler(w, req)
+
+    // Assertions
+    if w.Result().StatusCode != http.StatusOK {
+        t.Error("Expected 200 OK")
+    }
+}
+```
+
+### CI/CD Integration
+
+To run tests in CI pipeline:
+
+```bash
+#!/bin/bash
+set -e
+
+# Run tests with coverage
+go test ./internal/... -race -coverprofile=coverage.out -covermode=atomic
+
+# Fail if coverage below threshold (optional)
+go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//' | \
+  awk '{if ($1 < 70) exit 1}'
+```
+
 ## Kubernetes Deployment
 
 Brix Pizza is production-ready and can be deployed to Kubernetes with health checks, graceful shutdown, and horizontal pod autoscaling.

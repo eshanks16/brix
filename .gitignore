@@ -6,6 +6,10 @@ brix-pizza
 *.so
 *.dylib
 
+# Test coverage
+coverage.out
+coverage.html
+
 # Database
 db/*.db
 db/*.db-journal

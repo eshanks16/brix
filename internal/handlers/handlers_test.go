@@ -1,0 +1,543 @@
+package handlers
+
+import (
+	"brix-pizza/internal/database"
+	"brix-pizza/internal/models"
+	"html/template"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"strings"
+	"testing"
+	"time"
+
+	"golang.org/x/crypto/bcrypt"
+)
+
+// setupTestHandlers initializes handlers with test database and mock templates
+func setupTestHandlers(t *testing.T) *template.Template {
+	db := database.InitTestDB(t)
+
+	// Create minimal mock templates for testing
+	// These templates just render basic text so we can test handler logic
+	tmpl := template.Must(template.New("").Parse(`
+		{{define "home.html"}}Home Page{{end}}
+		{{define "register.html"}}{{if .Error}}{{.Error}}{{else}}Register Page{{end}}{{end}}
+		{{define "login.html"}}{{if .Error}}{{.Error}}{{else}}Login Page{{end}}{{end}}
+		{{define "order.html"}}Order Page{{end}}
+		{{define "orders.html"}}Orders Page{{end}}
+	`))
+
+	Init(db, tmpl)
+
+	// Clear sessions for clean state
+	sessions = make(map[string]*models.Session)
+
+	return tmpl
+}
+
+// createTestSession creates a test session and returns the session cookie
+func createTestSession(userID int, email, name string) *http.Cookie {
+	sessionID := generateSessionID()
+	sessions[sessionID] = &models.Session{
+		UserID: userID,
+		Email:  email,
+		Name:   name,
+	}
+	return &http.Cookie{
+		Name:  "session_id",
+		Value: sessionID,
+		Path:  "/",
+	}
+}
+
+func TestHomeHandler(t *testing.T) {
+	setupTestHandlers(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	w := httptest.NewRecorder()
+
+	HomeHandler(w, req)
+
+	resp := w.Result()
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", resp.StatusCode)
+	}
+
+	body := w.Body.String()
+	if !strings.Contains(body, "Home Page") {
+		t.Error("Expected home page content")
+	}
+}
+
+func TestOrderPageHandler_WithoutSession(t *testing.T) {
+	setupTestHandlers(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/order", nil)
+	w := httptest.NewRecorder()
+
+	OrderPageHandler(w, req)
+
+	resp := w.Result()
+	// Should redirect to login if no session
+	if resp.StatusCode != http.StatusSeeOther {
+		t.Errorf("Expected status 303 (redirect), got %d", resp.StatusCode)
+	}
+
+	location := resp.Header.Get("Location")
+	if location != "/login" {
+		t.Errorf("Expected redirect to /login, got %s", location)
+	}
+}
+
+func TestOrderPageHandler_WithSession(t *testing.T) {
+	setupTestHandlers(t)
+
+	// Create a test user
+	userID := database.SeedTestUser(t, db)
+
+	req := httptest.NewRequest(http.MethodGet, "/order", nil)
+	req.AddCookie(createTestSession(int(userID), "test@example.com", "Test User"))
+	w := httptest.NewRecorder()
+
+	OrderPageHandler(w, req)
+
+	resp := w.Result()
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", resp.StatusCode)
+	}
+
+	body := w.Body.String()
+	if !strings.Contains(body, "Order Page") {
+		t.Error("Expected order page content")
+	}
+}
+
+func TestRegisterHandler_GET(t *testing.T) {
+	setupTestHandlers(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/register", nil)
+	w := httptest.NewRecorder()
+
+	RegisterHandler(w, req)
+
+	resp := w.Result()
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", resp.StatusCode)
+	}
+
+	body := w.Body.String()
+	if !strings.Contains(body, "Register Page") {
+		t.Error("Expected register page content")
+	}
+}
+
+func TestRegisterHandler_POST_Success(t *testing.T) {
+	setupTestHandlers(t)
+
+	formData := url.Values{}
+	formData.Set("email", "newuser@example.com")
+	formData.Set("first_name", "New")
+	formData.Set("last_name", "User")
+	formData.Set("phone", "555-5678")
+	formData.Set("password", "password123")
+
+	req := httptest.NewRequest(http.MethodPost, "/register", strings.NewReader(formData.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+
+	RegisterHandler(w, req)
+
+	resp := w.Result()
+	// Should redirect to /order after successful registration
+	if resp.StatusCode != http.StatusSeeOther {
+		t.Errorf("Expected status 303 (redirect), got %d", resp.StatusCode)
+	}
+
+	location := resp.Header.Get("Location")
+	if location != "/order" {
+		t.Errorf("Expected redirect to /order, got %s", location)
+	}
+
+	// Should have set a session cookie
+	cookies := resp.Cookies()
+	found := false
+	for _, cookie := range cookies {
+		if cookie.Name == "session_id" {
+			found = true
+			if cookie.Value == "" {
+				t.Error("Session cookie has empty value")
+			}
+			break
+		}
+	}
+	if !found {
+		t.Error("Expected session_id cookie to be set")
+	}
+
+	// Verify user was created in database
+	var count int
+	db.QueryRow("SELECT COUNT(*) FROM users WHERE email = ?", "newuser@example.com").Scan(&count)
+	if count != 1 {
+		t.Errorf("Expected 1 user with email newuser@example.com, got %d", count)
+	}
+}
+
+func TestRegisterHandler_POST_DuplicateEmail(t *testing.T) {
+	setupTestHandlers(t)
+
+	// Create existing user
+	database.SeedTestUser(t, db)
+
+	formData := url.Values{}
+	formData.Set("email", "test@example.com") // Same as seeded user
+	formData.Set("first_name", "Duplicate")
+	formData.Set("last_name", "User")
+	formData.Set("phone", "555-9999")
+	formData.Set("password", "password123")
+
+	req := httptest.NewRequest(http.MethodPost, "/register", strings.NewReader(formData.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+
+	RegisterHandler(w, req)
+
+	resp := w.Result()
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", resp.StatusCode)
+	}
+
+	body := w.Body.String()
+	if !strings.Contains(body, "already exists") {
+		t.Error("Expected error message about existing account")
+	}
+}
+
+func TestLoginHandler_GET(t *testing.T) {
+	setupTestHandlers(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/login", nil)
+	w := httptest.NewRecorder()
+
+	LoginHandler(w, req)
+
+	resp := w.Result()
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", resp.StatusCode)
+	}
+
+	body := w.Body.String()
+	if !strings.Contains(body, "Login Page") {
+		t.Error("Expected login page content")
+	}
+}
+
+func TestLoginHandler_POST_Success(t *testing.T) {
+	setupTestHandlers(t)
+
+	// Create a user with known password
+	password := "testpass123"
+	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	db.Exec(`INSERT INTO users (first_name, last_name, email, phone, password_hash)
+		VALUES (?, ?, ?, ?, ?)`,
+		"Login", "Test", "login@example.com", "555-1111", string(hashedPassword))
+
+	formData := url.Values{}
+	formData.Set("email", "login@example.com")
+	formData.Set("password", password)
+
+	req := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(formData.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+
+	LoginHandler(w, req)
+
+	resp := w.Result()
+	// Should redirect to / after successful login
+	if resp.StatusCode != http.StatusSeeOther {
+		t.Errorf("Expected status 303 (redirect), got %d", resp.StatusCode)
+	}
+
+	location := resp.Header.Get("Location")
+	if location != "/" {
+		t.Errorf("Expected redirect to /, got %s", location)
+	}
+
+	// Should have set a session cookie
+	cookies := resp.Cookies()
+	found := false
+	for _, cookie := range cookies {
+		if cookie.Name == "session_id" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("Expected session_id cookie to be set")
+	}
+}
+
+func TestLoginHandler_POST_InvalidEmail(t *testing.T) {
+	setupTestHandlers(t)
+
+	formData := url.Values{}
+	formData.Set("email", "nonexistent@example.com")
+	formData.Set("password", "password123")
+
+	req := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(formData.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+
+	LoginHandler(w, req)
+
+	resp := w.Result()
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", resp.StatusCode)
+	}
+
+	body := w.Body.String()
+	if !strings.Contains(body, "Invalid email or password") {
+		t.Error("Expected error message about invalid credentials")
+	}
+}
+
+func TestLoginHandler_POST_InvalidPassword(t *testing.T) {
+	setupTestHandlers(t)
+
+	// Create a user
+	password := "correctpassword"
+	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	db.Exec(`INSERT INTO users (first_name, last_name, email, phone, password_hash)
+		VALUES (?, ?, ?, ?, ?)`,
+		"Pass", "Test", "passtest@example.com", "555-2222", string(hashedPassword))
+
+	formData := url.Values{}
+	formData.Set("email", "passtest@example.com")
+	formData.Set("password", "wrongpassword")
+
+	req := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(formData.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+
+	LoginHandler(w, req)
+
+	resp := w.Result()
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", resp.StatusCode)
+	}
+
+	body := w.Body.String()
+	if !strings.Contains(body, "Invalid email or password") {
+		t.Error("Expected error message about invalid credentials")
+	}
+}
+
+func TestLogoutHandler(t *testing.T) {
+	setupTestHandlers(t)
+
+	// Create a session
+	sessionCookie := createTestSession(1, "test@example.com", "Test User")
+
+	req := httptest.NewRequest(http.MethodGet, "/logout", nil)
+	req.AddCookie(sessionCookie)
+	w := httptest.NewRecorder()
+
+	LogoutHandler(w, req)
+
+	resp := w.Result()
+	// Should redirect to /login
+	if resp.StatusCode != http.StatusSeeOther {
+		t.Errorf("Expected status 303 (redirect), got %d", resp.StatusCode)
+	}
+
+	location := resp.Header.Get("Location")
+	if location != "/login" {
+		t.Errorf("Expected redirect to /login, got %s", location)
+	}
+
+	// Session should be deleted
+	if _, exists := sessions[sessionCookie.Value]; exists {
+		t.Error("Session should have been deleted")
+	}
+
+	// Cookie should be invalidated
+	cookies := resp.Cookies()
+	for _, cookie := range cookies {
+		if cookie.Name == "session_id" {
+			if cookie.MaxAge != -1 {
+				t.Error("Expected cookie to be invalidated (MaxAge = -1)")
+			}
+		}
+	}
+}
+
+func TestPlaceOrderHandler_WithoutSession(t *testing.T) {
+	setupTestHandlers(t)
+
+	formData := url.Values{}
+	formData.Set("pizza_style", "New York Style")
+	formData.Set("size", "Medium")
+
+	req := httptest.NewRequest(http.MethodPost, "/place-order", strings.NewReader(formData.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+
+	PlaceOrderHandler(w, req)
+
+	resp := w.Result()
+	// Should redirect to login if no session
+	if resp.StatusCode != http.StatusSeeOther {
+		t.Errorf("Expected status 303 (redirect), got %d", resp.StatusCode)
+	}
+
+	location := resp.Header.Get("Location")
+	if location != "/login" {
+		t.Errorf("Expected redirect to /login, got %s", location)
+	}
+}
+
+func TestPlaceOrderHandler_Success(t *testing.T) {
+	setupTestHandlers(t)
+
+	// Create a test user
+	userID := database.SeedTestUser(t, db)
+
+	formData := url.Values{}
+	formData.Set("pizza_style", "New York Style")
+	formData.Set("size", "2") // Size ID for Medium
+	formData.Add("left_toppings[]", "Pepperoni")
+	formData.Add("right_toppings[]", "Mushrooms")
+
+	req := httptest.NewRequest(http.MethodPost, "/place-order", strings.NewReader(formData.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(createTestSession(int(userID), "test@example.com", "Test User"))
+	w := httptest.NewRecorder()
+
+	PlaceOrderHandler(w, req)
+
+	resp := w.Result()
+	// Should redirect to /orders after successful order
+	if resp.StatusCode != http.StatusSeeOther {
+		body := w.Body.String()
+		t.Errorf("Expected status 303 (redirect), got %d. Body: %s", resp.StatusCode, body)
+	}
+
+	location := resp.Header.Get("Location")
+	if location != "/orders" {
+		t.Errorf("Expected redirect to /orders, got %s", location)
+	}
+
+	// Verify order was created
+	var count int
+	db.QueryRow("SELECT COUNT(*) FROM orders WHERE user_id = ?", userID).Scan(&count)
+	if count != 1 {
+		t.Errorf("Expected 1 order, got %d", count)
+	}
+}
+
+func TestOrdersHandler_WithoutSession(t *testing.T) {
+	setupTestHandlers(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/orders", nil)
+	w := httptest.NewRecorder()
+
+	OrdersHandler(w, req)
+
+	resp := w.Result()
+	// Should redirect to login if no session
+	if resp.StatusCode != http.StatusSeeOther {
+		t.Errorf("Expected status 303 (redirect), got %d", resp.StatusCode)
+	}
+
+	location := resp.Header.Get("Location")
+	if location != "/login" {
+		t.Errorf("Expected redirect to /login, got %s", location)
+	}
+}
+
+func TestOrdersHandler_WithSession(t *testing.T) {
+	setupTestHandlers(t)
+
+	// Create a test user
+	userID := database.SeedTestUser(t, db)
+
+	// Create a test order
+	db.Exec(`INSERT INTO orders (user_id, pizza_style, size, left_toppings, right_toppings, total, status)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		userID, "New York Style", "Medium", "Pepperoni", "Mushrooms", 21.49, "pending")
+
+	req := httptest.NewRequest(http.MethodGet, "/orders", nil)
+	req.AddCookie(createTestSession(int(userID), "test@example.com", "Test User"))
+	w := httptest.NewRecorder()
+
+	OrdersHandler(w, req)
+
+	resp := w.Result()
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", resp.StatusCode)
+	}
+
+	body := w.Body.String()
+	if !strings.Contains(body, "Orders Page") {
+		t.Error("Expected orders page content")
+	}
+}
+
+func TestGenerateSessionID(t *testing.T) {
+	id1 := generateSessionID()
+	// Sleep to ensure different nanosecond timestamp
+	time.Sleep(1 * time.Microsecond)
+	id2 := generateSessionID()
+
+	if id1 == id2 {
+		t.Error("Session IDs should be unique")
+	}
+
+	if len(id1) == 0 {
+		t.Error("Session ID should not be empty")
+	}
+}
+
+func TestGetSession_NoSession(t *testing.T) {
+	setupTestHandlers(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	session := getSession(req)
+
+	if session != nil {
+		t.Error("Expected nil session when no cookie present")
+	}
+}
+
+func TestGetSession_ValidSession(t *testing.T) {
+	setupTestHandlers(t)
+
+	cookie := createTestSession(1, "test@example.com", "Test User")
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.AddCookie(cookie)
+	session := getSession(req)
+
+	if session == nil {
+		t.Fatal("Expected valid session")
+	}
+
+	if session.Email != "test@example.com" {
+		t.Errorf("Expected email test@example.com, got %s", session.Email)
+	}
+}
+
+func TestGetSession_InvalidSessionID(t *testing.T) {
+	setupTestHandlers(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.AddCookie(&http.Cookie{
+		Name:  "session_id",
+		Value: "invalid-session-id",
+	})
+	session := getSession(req)
+
+	if session != nil {
+		t.Error("Expected nil session for invalid session ID")
+	}
+}
