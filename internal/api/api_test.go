@@ -175,8 +175,9 @@ func TestCreateOrderHandler_Success(t *testing.T) {
 		"user_id": 1,
 		"pizza_style": "New York Style",
 		"size_id": 2,
-		"left_toppings": ["Pepperoni", "Mushrooms"],
-		"right_toppings": ["Pepperoni", "Extra Cheese"]
+		"left_toppings": ["Pepperoni"],
+		"right_toppings": ["Extra Cheese"],
+		"whole_toppings": ["Mushrooms"]
 	}`
 
 	req := httptest.NewRequest(http.MethodPost, "/api/orders", bytes.NewBufferString(orderJSON))
@@ -343,8 +344,8 @@ func TestGetOrdersHandler_AllOrders(t *testing.T) {
 
 	// Insert a test order
 	_, err := db.Exec(`
-		INSERT INTO orders (user_id, pizza_style, size, left_toppings, right_toppings, total, status)
-		VALUES (1, 'New York Style', 'Medium', 'Pepperoni', 'Mushrooms', 21.49, 'pending')
+		INSERT INTO orders (user_id, pizza_style, size, left_toppings, right_toppings, whole_toppings, total, status)
+		VALUES (1, 'New York Style', 'Medium', 'Pepperoni', 'Olives', 'Mushrooms', 21.49, 'pending')
 	`)
 	if err != nil {
 		t.Fatalf("Failed to insert test order: %v", err)
@@ -391,10 +392,10 @@ func TestGetOrdersHandler_FilterByUserID(t *testing.T) {
 
 	// Insert test orders for user 1
 	_, err := db.Exec(`
-		INSERT INTO orders (user_id, pizza_style, size, left_toppings, right_toppings, total, status)
+		INSERT INTO orders (user_id, pizza_style, size, left_toppings, right_toppings, whole_toppings, total, status)
 		VALUES
-			(1, 'New York Style', 'Medium', 'Pepperoni', 'Mushrooms', 21.49, 'pending'),
-			(1, 'Chicago Deep Dish', 'Large', 'Sausage', 'Peppers', 24.99, 'completed')
+			(1, 'New York Style', 'Medium', 'Pepperoni', 'Olives', 'Mushrooms', 21.49, 'pending'),
+			(1, 'Chicago Deep Dish', 'Large', 'Sausage', 'Peppers', '', 24.99, 'completed')
 	`)
 	if err != nil {
 		t.Fatalf("Failed to insert test orders: %v", err)

@@ -164,6 +164,9 @@ func createOrderHandler(w http.ResponseWriter, r *http.Request) {
 	for _, t := range req.RightToppings {
 		uniqueToppings[t] = true
 	}
+	for _, t := range req.WholeToppings {
+		uniqueToppings[t] = true
+	}
 
 	// Calculate total topping cost from database prices
 	var toppingCost float64
@@ -190,9 +193,14 @@ func createOrderHandler(w http.ResponseWriter, r *http.Request) {
 		rightToppingsStr = joinStrings(req.RightToppings, ", ")
 	}
 
+	wholeToppingsStr := ""
+	if len(req.WholeToppings) > 0 {
+		wholeToppingsStr = joinStrings(req.WholeToppings, ", ")
+	}
+
 	// Insert order
-	stmt, err := db.Prepare(`INSERT INTO orders (user_id, pizza_style, size, left_toppings, right_toppings, total)
-		VALUES (?, ?, ?, ?, ?, ?)`)
+	stmt, err := db.Prepare(`INSERT INTO orders (user_id, pizza_style, size, left_toppings, right_toppings, whole_toppings, total)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`)
 	if err != nil {
 		log.Printf("Error preparing statement: %v", err)
 		respondError(w, "Error creating order", http.StatusInternalServerError)
@@ -206,6 +214,7 @@ func createOrderHandler(w http.ResponseWriter, r *http.Request) {
 		sizeName,
 		leftToppingsStr,
 		rightToppingsStr,
+		wholeToppingsStr,
 		total,
 	)
 
@@ -219,9 +228,9 @@ func createOrderHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Fetch the created order
 	var order models.OrderResponse
-	err = db.QueryRow(`SELECT id, pizza_style, size, left_toppings, right_toppings, total, status, created_at
+	err = db.QueryRow(`SELECT id, pizza_style, size, left_toppings, right_toppings, whole_toppings, total, status, created_at
 		FROM orders WHERE id = ?`, orderID).Scan(
-		&order.ID, &order.PizzaStyle, &order.Size, &order.LeftToppings, &order.RightToppings,
+		&order.ID, &order.PizzaStyle, &order.Size, &order.LeftToppings, &order.RightToppings, &order.WholeToppings,
 		&order.Total, &order.Status, &order.CreatedAt)
 
 	if err != nil {
@@ -250,12 +259,12 @@ func getOrdersHandler(w http.ResponseWriter, r *http.Request) {
 
 	if userIDStr != "" {
 		// Filter by specific user
-		query = `SELECT id, pizza_style, size, left_toppings, right_toppings, total, status, created_at
+		query = `SELECT id, pizza_style, size, left_toppings, right_toppings, whole_toppings, total, status, created_at
 			FROM orders WHERE user_id = ? ORDER BY created_at DESC`
 		args = append(args, userIDStr)
 	} else {
 		// Return all orders (admin view)
-		query = `SELECT id, pizza_style, size, left_toppings, right_toppings, total, status, created_at
+		query = `SELECT id, pizza_style, size, left_toppings, right_toppings, whole_toppings, total, status, created_at
 			FROM orders ORDER BY created_at DESC`
 	}
 
@@ -272,7 +281,7 @@ func getOrdersHandler(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var order models.OrderResponse
 		err := rows.Scan(&order.ID, &order.PizzaStyle, &order.Size,
-			&order.LeftToppings, &order.RightToppings, &order.Total, &order.Status, &order.CreatedAt)
+			&order.LeftToppings, &order.RightToppings, &order.WholeToppings, &order.Total, &order.Status, &order.CreatedAt)
 		if err != nil {
 			continue
 		}

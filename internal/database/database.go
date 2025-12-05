@@ -133,6 +133,12 @@ func runMigrations(database *sql.DB) error {
 			name: "002_seed_menu_data",
 			sql:  "", // Special migration handled separately with locking
 		},
+		{
+			name: "003_add_whole_toppings",
+			sql: `
+				ALTER TABLE orders ADD COLUMN whole_toppings TEXT;
+			`,
+		},
 	}
 
 	// Apply each migration if not already applied

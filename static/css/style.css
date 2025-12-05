@@ -178,7 +178,7 @@ select:focus {
 
 .toppings-grid {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
     gap: 10px;
     align-items: center;
 }
@@ -193,6 +193,14 @@ select:focus {
     border: 2px solid #dee2e6;
 }
 
+.topping-header.topping-icon {
+    font-size: 1.5em;
+}
+
+.topping-header.topping-icon span {
+    cursor: help;
+}
+
 .topping-name {
     padding: 12px;
     background: #fff;
@@ -201,6 +209,21 @@ select:focus {
     font-weight: 500;
 }
 
+.topping-radio {
+    text-align: center;
+    padding: 12px;
+    background: #fff;
+    border-radius: 6px;
+}
+
+.topping-radio input[type="radio"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: #3A5F3A;
+}
+
+/* Legacy checkbox support for backward compatibility */
 .topping-checkbox {
     text-align: center;
     padding: 12px;
