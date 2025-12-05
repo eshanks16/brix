@@ -21,6 +21,7 @@ type Order struct {
 	Size          string
 	LeftToppings  string
 	RightToppings string
+	WholeToppings string
 	Total         float64
 	Status        string
 	CreatedAt     time.Time
@@ -76,6 +77,7 @@ type CreateOrderRequest struct {
 	SizeID        int      `json:"size_id"`
 	LeftToppings  []string `json:"left_toppings"`
 	RightToppings []string `json:"right_toppings"`
+	WholeToppings []string `json:"whole_toppings"`
 }
 
 // OrderResponse represents the JSON response for an order
@@ -85,6 +87,7 @@ type OrderResponse struct {
 	Size          string    `json:"size"`
 	LeftToppings  string    `json:"left_toppings"`
 	RightToppings string    `json:"right_toppings"`
+	WholeToppings string    `json:"whole_toppings"`
 	Total         float64   `json:"total"`
 	Status        string    `json:"status"`
 	CreatedAt     time.Time `json:"created_at"`

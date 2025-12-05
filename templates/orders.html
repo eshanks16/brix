@@ -30,8 +30,9 @@
                             <th>Order #</th>
                             <th>Style</th>
                             <th>Size</th>
-                            <th>Left Toppings</th>
-                            <th>Right Toppings</th>
+                            <th>🍕◐ Left Half</th>
+                            <th>🍕 Whole Pizza</th>
+                            <th>🍕◑ Right Half</th>
                             <th>Total</th>
                             <th>Time</th>
                         </tr>
@@ -43,6 +44,7 @@
                             <td>{{.PizzaStyle}}</td>
                             <td>{{.Size}}</td>
                             <td>{{if .LeftToppings}}{{.LeftToppings}}{{else}}-{{end}}</td>
+                            <td>{{if .WholeToppings}}{{.WholeToppings}}{{else}}-{{end}}</td>
                             <td>{{if .RightToppings}}{{.RightToppings}}{{else}}-{{end}}</td>
                             <td>${{printf "%.2f" .Total}}</td>
                             <td>{{.CreatedAt.Format "Jan 02, 15:04"}}</td>

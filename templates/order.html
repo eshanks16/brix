@@ -46,17 +46,19 @@
 
                 <div class="toppings-section">
                     <h3>Select Your Toppings</h3>
-                    <p class="toppings-info">Choose which side you want each topping on, or select both for the whole pizza</p>
+                    <p class="toppings-info">Choose where you want each topping: left half, whole pizza, or right half</p>
 
                     <div class="toppings-grid">
                         <div class="topping-header">Topping</div>
-                        <div class="topping-header">Left Side</div>
-                        <div class="topping-header">Right Side</div>
+                        <div class="topping-header topping-icon"><span title="Left Half">🍕◐</span></div>
+                        <div class="topping-header topping-icon"><span title="Whole Pizza">🍕</span></div>
+                        <div class="topping-header topping-icon"><span title="Right Half">🍕◑</span></div>
 
                         {{range .Toppings}}
                         <div class="topping-name">{{.Name}} (${{printf "%.2f" .Price}})</div>
-                        <div class="topping-checkbox"><input type="checkbox" name="left_toppings[]" value="{{.Name}}"></div>
-                        <div class="topping-checkbox"><input type="checkbox" name="right_toppings[]" value="{{.Name}}"></div>
+                        <div class="topping-radio"><input type="radio" name="topping_{{.Name}}" value="left"></div>
+                        <div class="topping-radio"><input type="radio" name="topping_{{.Name}}" value="whole"></div>
+                        <div class="topping-radio"><input type="radio" name="topping_{{.Name}}" value="right"></div>
                         {{end}}
                     </div>
                 </div>

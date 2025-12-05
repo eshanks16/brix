@@ -405,8 +405,10 @@ func TestPlaceOrderHandler_Success(t *testing.T) {
 	formData := url.Values{}
 	formData.Set("pizza_style", "New York Style")
 	formData.Set("size", "2") // Size ID for Medium
-	formData.Add("left_toppings[]", "Pepperoni")
-	formData.Add("right_toppings[]", "Mushrooms")
+	// New radio button format: topping_{name} = "left" | "whole" | "right"
+	formData.Set("topping_Pepperoni", "left")
+	formData.Set("topping_Mushrooms", "whole")
+	formData.Set("topping_Extra Cheese", "right")
 
 	req := httptest.NewRequest(http.MethodPost, "/place-order", strings.NewReader(formData.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -427,11 +429,22 @@ func TestPlaceOrderHandler_Success(t *testing.T) {
 		t.Errorf("Expected redirect to /orders, got %s", location)
 	}
 
-	// Verify order was created
-	var count int
-	db.QueryRow("SELECT COUNT(*) FROM orders WHERE user_id = ?", userID).Scan(&count)
-	if count != 1 {
-		t.Errorf("Expected 1 order, got %d", count)
+	// Verify order was created with correct toppings
+	var leftToppings, wholeToppings, rightToppings string
+	err := db.QueryRow("SELECT left_toppings, whole_toppings, right_toppings FROM orders WHERE user_id = ?", userID).
+		Scan(&leftToppings, &wholeToppings, &rightToppings)
+	if err != nil {
+		t.Errorf("Failed to query order: %v", err)
+	}
+
+	if leftToppings != "Pepperoni" {
+		t.Errorf("Expected left_toppings 'Pepperoni', got '%s'", leftToppings)
+	}
+	if wholeToppings != "Mushrooms" {
+		t.Errorf("Expected whole_toppings 'Mushrooms', got '%s'", wholeToppings)
+	}
+	if rightToppings != "Extra Cheese" {
+		t.Errorf("Expected right_toppings 'Extra Cheese', got '%s'", rightToppings)
 	}
 }
 
@@ -462,9 +475,9 @@ func TestOrdersHandler_WithSession(t *testing.T) {
 	userID := database.SeedTestUser(t, db)
 
 	// Create a test order
-	db.Exec(`INSERT INTO orders (user_id, pizza_style, size, left_toppings, right_toppings, total, status)
-		VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		userID, "New York Style", "Medium", "Pepperoni", "Mushrooms", 21.49, "pending")
+	db.Exec(`INSERT INTO orders (user_id, pizza_style, size, left_toppings, right_toppings, whole_toppings, total, status)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		userID, "New York Style", "Medium", "Pepperoni", "Olives", "Mushrooms", 21.49, "pending")
 
 	req := httptest.NewRequest(http.MethodGet, "/orders", nil)
 	req.AddCookie(createTestSession(int(userID), "test@example.com", "Test User"))

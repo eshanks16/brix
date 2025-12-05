@@ -278,8 +278,24 @@ func PlaceOrderHandler(w http.ResponseWriter, r *http.Request) {
 	// Get form values
 	pizzaStyle := r.FormValue("pizza_style")
 	sizeID := r.FormValue("size")
-	leftToppings := r.Form["left_toppings[]"]
-	rightToppings := r.Form["right_toppings[]"]
+
+	// Parse topping selections - now using radio buttons with format: topping_{name} = "left" | "right" | "whole"
+	var leftToppings, rightToppings, wholeToppings []string
+	for key, values := range r.Form {
+		if len(values) > 0 && len(key) > 8 && key[:8] == "topping_" {
+			toppingName := key[8:] // Remove "topping_" prefix
+			placement := values[0]
+
+			switch placement {
+			case "left":
+				leftToppings = append(leftToppings, toppingName)
+			case "right":
+				rightToppings = append(rightToppings, toppingName)
+			case "whole":
+				wholeToppings = append(wholeToppings, toppingName)
+			}
+		}
+	}
 
 	// Get base price from database by size ID
 	var basePrice float64
@@ -297,6 +313,9 @@ func PlaceOrderHandler(w http.ResponseWriter, r *http.Request) {
 		uniqueToppings[t] = true
 	}
 	for _, t := range rightToppings {
+		uniqueToppings[t] = true
+	}
+	for _, t := range wholeToppings {
 		uniqueToppings[t] = true
 	}
 
@@ -325,9 +344,14 @@ func PlaceOrderHandler(w http.ResponseWriter, r *http.Request) {
 		rightToppingsStr = joinStrings(rightToppings, ", ")
 	}
 
+	wholeToppingsStr := ""
+	if len(wholeToppings) > 0 {
+		wholeToppingsStr = joinStrings(wholeToppings, ", ")
+	}
+
 	// Insert order
-	stmt, err := db.Prepare(`INSERT INTO orders (user_id, pizza_style, size, left_toppings, right_toppings, total)
-		VALUES (?, ?, ?, ?, ?, ?)`)
+	stmt, err := db.Prepare(`INSERT INTO orders (user_id, pizza_style, size, left_toppings, right_toppings, whole_toppings, total)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`)
 	if err != nil {
 		http.Error(w, "Error creating order", http.StatusInternalServerError)
 		return
@@ -340,6 +364,7 @@ func PlaceOrderHandler(w http.ResponseWriter, r *http.Request) {
 		sizeName,
 		leftToppingsStr,
 		rightToppingsStr,
+		wholeToppingsStr,
 		total,
 	)
 
@@ -360,7 +385,7 @@ func OrdersHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows, err := db.Query(`
-		SELECT o.id, o.user_id, o.pizza_style, o.size, o.left_toppings, o.right_toppings, o.total, o.status, o.created_at,
+		SELECT o.id, o.user_id, o.pizza_style, o.size, o.left_toppings, o.right_toppings, o.whole_toppings, o.total, o.status, o.created_at,
 		       u.first_name || ' ' || u.last_name as customer_name, u.phone
 		FROM orders o
 		JOIN users u ON o.user_id = u.id
@@ -376,7 +401,7 @@ func OrdersHandler(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var order models.Order
 		err := rows.Scan(&order.ID, &order.UserID, &order.PizzaStyle, &order.Size,
-			&order.LeftToppings, &order.RightToppings, &order.Total, &order.Status, &order.CreatedAt,
+			&order.LeftToppings, &order.RightToppings, &order.WholeToppings, &order.Total, &order.Status, &order.CreatedAt,
 			&order.CustomerName, &order.CustomerPhone)
 		if err != nil {
 			continue
