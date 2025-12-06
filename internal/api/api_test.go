@@ -2,13 +2,35 @@ package api
 
 import (
 	"brix-pizza/internal/database"
+	"brix-pizza/internal/handlers"
 	"bytes"
+	"database/sql"
 	"encoding/json"
+	"html/template"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 )
+
+// setupTestAPI initializes both API and handlers packages for testing
+func setupTestAPI(t *testing.T, db *sql.DB) {
+	Init(db)
+	// Initialize handlers with mock templates so session management works
+	mockTemplates := template.New("test")
+	handlers.Init(db, mockTemplates)
+}
+
+// createTestSession creates a session cookie for testing
+func createTestSession(userID int, email, name string) *http.Cookie {
+	// Use the handlers package to create a real session
+	sessionID := handlers.CreateSessionForTesting(userID, email, name)
+	return &http.Cookie{
+		Name:  "session_id",
+		Value: sessionID,
+		Path:  "/",
+	}
+}
 
 func TestMenuHandler_Success(t *testing.T) {
 	// Setup: Use the real database initialization code
@@ -20,7 +42,7 @@ func TestMenuHandler_Success(t *testing.T) {
 	os.Unsetenv("BRIX_API_KEY")
 	apiKey = ""
 
-	req := httptest.NewRequest(http.MethodGet, "/api/menu", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/menu", nil)
 	w := httptest.NewRecorder()
 
 	// Test
@@ -74,7 +96,7 @@ func TestMenuHandler_WithAPIKey(t *testing.T) {
 	testAPIKey := "test-api-key-123"
 	apiKey = testAPIKey
 
-	req := httptest.NewRequest(http.MethodGet, "/api/menu", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/menu", nil)
 	req.Header.Set("Authorization", "Bearer "+testAPIKey)
 	w := httptest.NewRecorder()
 
@@ -97,7 +119,7 @@ func TestMenuHandler_InvalidAPIKey(t *testing.T) {
 	// Set API key
 	apiKey = "correct-api-key"
 
-	req := httptest.NewRequest(http.MethodGet, "/api/menu", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/menu", nil)
 	req.Header.Set("Authorization", "Bearer wrong-api-key")
 	w := httptest.NewRecorder()
 
@@ -126,7 +148,7 @@ func TestMenuHandler_MissingAPIKey(t *testing.T) {
 	// Set API key requirement
 	apiKey = "required-api-key"
 
-	req := httptest.NewRequest(http.MethodGet, "/api/menu", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/menu", nil)
 	// Don't set Authorization header
 	w := httptest.NewRecorder()
 
@@ -147,7 +169,7 @@ func TestMenuHandler_MethodNotAllowed(t *testing.T) {
 	Init(db)
 	apiKey = ""
 
-	req := httptest.NewRequest(http.MethodPost, "/api/menu", nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/menu", nil)
 	w := httptest.NewRecorder()
 
 	// Test
@@ -168,11 +190,10 @@ func TestCreateOrderHandler_Success(t *testing.T) {
 	// Create a test user
 	userID := database.SeedTestUser(t, db)
 
-	Init(db)
+	setupTestAPI(t, db)
 	apiKey = "" // Unsecured mode
 
 	orderJSON := `{
-		"user_id": 1,
 		"pizza_style": "New York Style",
 		"size_id": 2,
 		"left_toppings": ["Pepperoni"],
@@ -180,8 +201,9 @@ func TestCreateOrderHandler_Success(t *testing.T) {
 		"whole_toppings": ["Mushrooms"]
 	}`
 
-	req := httptest.NewRequest(http.MethodPost, "/api/orders", bytes.NewBufferString(orderJSON))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/orders", bytes.NewBufferString(orderJSON))
 	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(createTestSession(int(userID), "test@example.com", "Test User"))
 	w := httptest.NewRecorder()
 
 	// Test
@@ -234,23 +256,23 @@ func TestCreateOrderHandler_Success(t *testing.T) {
 	_ = userID // Use the variable
 }
 
-func TestCreateOrderHandler_InvalidUserID(t *testing.T) {
+func TestCreateOrderHandler_NoSession(t *testing.T) {
 	// Setup
 	db := database.InitTestDB(t)
 	defer db.Close()
-	Init(db)
+	setupTestAPI(t, db)
 	apiKey = ""
 
 	orderJSON := `{
-		"user_id": 999,
 		"pizza_style": "New York Style",
 		"size_id": 2,
 		"left_toppings": ["Pepperoni"],
 		"right_toppings": ["Pepperoni"]
 	}`
 
-	req := httptest.NewRequest(http.MethodPost, "/api/orders", bytes.NewBufferString(orderJSON))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/orders", bytes.NewBufferString(orderJSON))
 	req.Header.Set("Content-Type", "application/json")
+	// Don't add session cookie
 	w := httptest.NewRecorder()
 
 	// Test
@@ -258,14 +280,14 @@ func TestCreateOrderHandler_InvalidUserID(t *testing.T) {
 
 	// Assertions
 	resp := w.Result()
-	if resp.StatusCode != http.StatusBadRequest {
-		t.Errorf("Expected status 400, got %d", resp.StatusCode)
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Errorf("Expected status 401, got %d", resp.StatusCode)
 	}
 
 	var result map[string]interface{}
 	json.NewDecoder(resp.Body).Decode(&result)
-	if result["error"] != "Invalid user_id" {
-		t.Errorf("Expected 'Invalid user_id' error, got %v", result["error"])
+	if result["error"] != "Unauthorized - valid session required" {
+		t.Errorf("Expected 'Unauthorized - valid session required' error, got %v", result["error"])
 	}
 }
 
@@ -273,20 +295,20 @@ func TestCreateOrderHandler_InvalidSizeID(t *testing.T) {
 	// Setup
 	db := database.InitTestDB(t)
 	defer db.Close()
-	database.SeedTestUser(t, db)
-	Init(db)
+	userID := database.SeedTestUser(t, db)
+	setupTestAPI(t, db)
 	apiKey = ""
 
 	orderJSON := `{
-		"user_id": 1,
 		"pizza_style": "New York Style",
 		"size_id": 999,
 		"left_toppings": ["Pepperoni"],
 		"right_toppings": ["Pepperoni"]
 	}`
 
-	req := httptest.NewRequest(http.MethodPost, "/api/orders", bytes.NewBufferString(orderJSON))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/orders", bytes.NewBufferString(orderJSON))
 	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(createTestSession(int(userID), "test@example.com", "Test User"))
 	w := httptest.NewRecorder()
 
 	// Test
@@ -309,13 +331,15 @@ func TestCreateOrderHandler_InvalidJSON(t *testing.T) {
 	// Setup
 	db := database.InitTestDB(t)
 	defer db.Close()
-	Init(db)
+	userID := database.SeedTestUser(t, db)
+	setupTestAPI(t, db)
 	apiKey = ""
 
 	invalidJSON := `{invalid json`
 
-	req := httptest.NewRequest(http.MethodPost, "/api/orders", bytes.NewBufferString(invalidJSON))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/orders", bytes.NewBufferString(invalidJSON))
 	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(createTestSession(int(userID), "test@example.com", "Test User"))
 	w := httptest.NewRecorder()
 
 	// Test
@@ -334,24 +358,25 @@ func TestCreateOrderHandler_InvalidJSON(t *testing.T) {
 	}
 }
 
-func TestGetOrdersHandler_AllOrders(t *testing.T) {
+func TestGetOrdersHandler_Success(t *testing.T) {
 	// Setup
 	db := database.InitTestDB(t)
 	defer db.Close()
-	database.SeedTestUser(t, db)
-	Init(db)
+	userID := database.SeedTestUser(t, db)
+	setupTestAPI(t, db)
 	apiKey = ""
 
 	// Insert a test order
 	_, err := db.Exec(`
 		INSERT INTO orders (user_id, pizza_style, size, left_toppings, right_toppings, whole_toppings, total, status)
-		VALUES (1, 'New York Style', 'Medium', 'Pepperoni', 'Olives', 'Mushrooms', 21.49, 'pending')
-	`)
+		VALUES (?, 'New York Style', 'Medium', 'Pepperoni', 'Olives', 'Mushrooms', 21.49, 'pending')
+	`, userID)
 	if err != nil {
 		t.Fatalf("Failed to insert test order: %v", err)
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/orders/list", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/orders/list", nil)
+	req.AddCookie(createTestSession(int(userID), "test@example.com", "Test User"))
 	w := httptest.NewRecorder()
 
 	// Test
@@ -382,26 +407,27 @@ func TestGetOrdersHandler_AllOrders(t *testing.T) {
 	}
 }
 
-func TestGetOrdersHandler_FilterByUserID(t *testing.T) {
+func TestGetOrdersHandler_MultipleOrders(t *testing.T) {
 	// Setup
 	db := database.InitTestDB(t)
 	defer db.Close()
-	database.SeedTestUser(t, db)
-	Init(db)
+	userID := database.SeedTestUser(t, db)
+	setupTestAPI(t, db)
 	apiKey = ""
 
-	// Insert test orders for user 1
+	// Insert test orders for the user
 	_, err := db.Exec(`
 		INSERT INTO orders (user_id, pizza_style, size, left_toppings, right_toppings, whole_toppings, total, status)
 		VALUES
-			(1, 'New York Style', 'Medium', 'Pepperoni', 'Olives', 'Mushrooms', 21.49, 'pending'),
-			(1, 'Chicago Deep Dish', 'Large', 'Sausage', 'Peppers', '', 24.99, 'completed')
-	`)
+			(?, 'New York Style', 'Medium', 'Pepperoni', 'Olives', 'Mushrooms', 21.49, 'pending'),
+			(?, 'Chicago Deep Dish', 'Large', 'Sausage', 'Peppers', '', 24.99, 'completed')
+	`, userID, userID)
 	if err != nil {
 		t.Fatalf("Failed to insert test orders: %v", err)
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/orders/list?user_id=1", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/orders/list", nil)
+	req.AddCookie(createTestSession(int(userID), "test@example.com", "Test User"))
 	w := httptest.NewRecorder()
 
 	// Test
@@ -423,16 +449,45 @@ func TestGetOrdersHandler_FilterByUserID(t *testing.T) {
 	}
 }
 
+func TestGetOrdersHandler_NoSession(t *testing.T) {
+	// Setup
+	db := database.InitTestDB(t)
+	defer db.Close()
+	setupTestAPI(t, db)
+	apiKey = ""
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/orders/list", nil)
+	// Don't add session cookie
+	w := httptest.NewRecorder()
+
+	// Test
+	GetOrdersHandler(w, req)
+
+	// Assertions
+	resp := w.Result()
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Errorf("Expected status 401, got %d", resp.StatusCode)
+	}
+
+	var result map[string]interface{}
+	json.NewDecoder(resp.Body).Decode(&result)
+	if result["error"] != "Unauthorized - valid session required" {
+		t.Errorf("Expected 'Unauthorized - valid session required' error, got %v", result["error"])
+	}
+}
+
 func TestGetOrdersHandler_EmptyResult(t *testing.T) {
 	// Setup
 	db := database.InitTestDB(t)
 	defer db.Close()
-	Init(db)
+	userID := database.SeedTestUser(t, db)
+	setupTestAPI(t, db)
 	apiKey = ""
 
-	// Don't insert any orders
+	// Don't insert any orders - user has no orders
 
-	req := httptest.NewRequest(http.MethodGet, "/api/orders/list?user_id=999", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/orders/list", nil)
+	req.AddCookie(createTestSession(int(userID), "test@example.com", "Test User"))
 	w := httptest.NewRecorder()
 
 	// Test

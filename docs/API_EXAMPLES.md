@@ -4,31 +4,59 @@ This document provides practical examples for using the Brix Pizza REST API.
 
 ## Authentication
 
-All API endpoints require authentication via an API key. The API key is set via the `BRIX_API_KEY` environment variable when starting the application.
+The API uses **session-based authentication**. Users must login first to obtain a session cookie, then use that cookie for subsequent API requests.
 
-### Setting the API Key
+### Two-Layer Authentication
+
+1. **Session Cookie** (Required): Identifies the authenticated user
+2. **API Key** (Optional): Additional security layer for production environments
+
+### Logging In
+
+Before using the API, you must authenticate via the web login endpoint:
+
+```bash
+# Login to get session cookie
+curl -c cookies.txt -X POST http://localhost:8080/login \
+  -d "email=user@example.com&password=yourpassword"
+```
+
+This creates a `cookies.txt` file containing your session cookie.
+
+### Using the Session Cookie
+
+Include the cookie file in all API requests:
+
+```bash
+curl -b cookies.txt http://localhost:8080/api/v1/menu
+```
+
+### Optional API Key (Production)
+
+For additional security in production, you can set an API key:
 
 ```bash
 export BRIX_API_KEY="your-secret-api-key-here"
 go run main.go
 ```
 
-### Using the API Key
-
-Include the API key in the `Authorization` header with the `Bearer` prefix:
+Then include both the session cookie AND API key:
 
 ```bash
-curl -H "Authorization: Bearer your-secret-api-key-here" \
-  http://localhost:8080/api/menu
+curl -b cookies.txt \
+  -H "Authorization: Bearer your-secret-api-key-here" \
+  http://localhost:8080/api/v1/menu
 ```
 
-**Note:** If `BRIX_API_KEY` is not set, the API will run in insecure mode (for development only).
+**Note:** If `BRIX_API_KEY` is not set, only session authentication is required (for development).
 
 ## Base URL
 
 ```
-http://localhost:8080
+http://localhost:8080/api/v1
 ```
+
+**Note:** All API endpoints are versioned. The current version is `v1`.
 
 ---
 
@@ -38,14 +66,18 @@ http://localhost:8080
 
 Retrieve all available pizza styles, sizes, and toppings.
 
-**Endpoint:** `GET /api/menu`
+**Endpoint:** `GET /api/v1/menu`
 
-**Authentication:** API Key required
+**Authentication:** Session cookie required (login first)
 
 **Request:**
 ```bash
-curl -H "Authorization: Bearer your-secret-api-key-here" \
-  http://localhost:8080/api/menu
+# First, login to get session cookie
+curl -c cookies.txt -X POST http://localhost:8080/login \
+  -d "email=user@example.com&password=yourpassword"
+
+# Then, use the session cookie to get the menu
+curl -b cookies.txt http://localhost:8080/api/v1/menu
 ```
 
 **Response (200 OK):**
@@ -116,58 +148,53 @@ curl -H "Authorization: Bearer your-secret-api-key-here" \
 
 **Using jq to format:**
 ```bash
-curl -s -H "Authorization: Bearer your-secret-api-key-here" \
-  http://localhost:8080/api/menu | jq '.'
+curl -s -b cookies.txt http://localhost:8080/api/v1/menu | jq '.'
 ```
 
 **Extract only pizza styles:**
 ```bash
-curl -s -H "Authorization: Bearer your-secret-api-key-here" \
-  http://localhost:8080/api/menu | jq '.pizza_styles'
+curl -s -b cookies.txt http://localhost:8080/api/v1/menu | jq '.pizza_styles'
 ```
 
 ---
 
 ### 2. Create Order
 
-Place a new pizza order for a user (admin operation).
+Place a new pizza order for the authenticated user.
 
-**Endpoint:** `POST /api/orders`
+**Endpoint:** `POST /api/v1/orders`
 
-**Authentication:** API Key required
+**Authentication:** Session cookie required (user is identified from session)
 
 **Request Body:**
 ```json
 {
-  "user_id": 1,
   "pizza_style": "New York Style",
   "size_id": 2,
   "left_toppings": ["Pepperoni", "Mushrooms"],
-  "right_toppings": ["Pepperoni", "Bell Peppers"]
+  "right_toppings": ["Pepperoni", "Bell Peppers"],
+  "whole_toppings": ["Extra Cheese"]
 }
 ```
 
-**Example 1: Simple pepperoni pizza**
+**Note:** The `user_id` is automatically extracted from your session. You don't need to provide it in the request body.
+
+**Example 1: Whole pizza with pepperoni**
 ```bash
-curl -X POST http://localhost:8080/api/orders \
-  -H "Authorization: Bearer your-secret-api-key-here" \
+curl -b cookies.txt -X POST http://localhost:8080/api/v1/orders \
   -H "Content-Type: application/json" \
   -d '{
-    "user_id": 1,
     "pizza_style": "New York Style",
     "size_id": 2,
-    "left_toppings": ["Pepperoni"],
-    "right_toppings": ["Pepperoni"]
+    "whole_toppings": ["Pepperoni"]
   }'
 ```
 
 **Example 2: Half-and-half pizza**
 ```bash
-curl -X POST http://localhost:8080/api/orders \
-  -H "Authorization: Bearer your-secret-api-key-here" \
+curl -b cookies.txt -X POST http://localhost:8080/api/v1/orders \
   -H "Content-Type: application/json" \
   -d '{
-    "user_id": 2,
     "pizza_style": "Chicago Deep Dish",
     "size_id": 3,
     "left_toppings": ["Pepperoni", "Italian Sausage", "Mushrooms"],
@@ -175,31 +202,27 @@ curl -X POST http://localhost:8080/api/orders \
   }'
 ```
 
-**Example 3: Vegetarian pizza**
+**Example 3: Vegetarian whole pizza**
 ```bash
-curl -X POST http://localhost:8080/api/orders \
-  -H "Authorization: Bearer your-secret-api-key-here" \
+curl -b cookies.txt -X POST http://localhost:8080/api/v1/orders \
   -H "Content-Type: application/json" \
   -d '{
-    "user_id": 3,
     "pizza_style": "Neapolitan",
     "size_id": 2,
-    "left_toppings": ["Mushrooms", "Bell Peppers", "Onions", "Tomatoes"],
-    "right_toppings": ["Mushrooms", "Bell Peppers", "Onions", "Tomatoes"]
+    "whole_toppings": ["Mushrooms", "Bell Peppers", "Onions", "Tomatoes"]
   }'
 ```
 
-**Example 4: Meat lovers (Extra Large)**
+**Example 4: Three-way split (left, whole, right)**
 ```bash
-curl -X POST http://localhost:8080/api/orders \
-  -H "Authorization: Bearer your-secret-api-key-here" \
+curl -b cookies.txt -X POST http://localhost:8080/api/v1/orders \
   -H "Content-Type: application/json" \
   -d '{
-    "user_id": 1,
     "pizza_style": "Detroit Style",
     "size_id": 4,
-    "left_toppings": ["Pepperoni", "Italian Sausage", "Bacon", "Ham"],
-    "right_toppings": ["Pepperoni", "Italian Sausage", "Bacon", "Ham"]
+    "left_toppings": ["Pepperoni"],
+    "whole_toppings": ["Extra Cheese"],
+    "right_toppings": ["Mushrooms"]
   }'
 ```
 
@@ -217,10 +240,17 @@ curl -X POST http://localhost:8080/api/orders \
 }
 ```
 
-**Error Response (400 Bad Request):**
+**Error Response (401 Unauthorized - No Session):**
 ```json
 {
-  "error": "Invalid user_id"
+  "error": "Unauthorized - valid session required"
+}
+```
+
+**Error Response (400 Bad Request - Invalid Size):**
+```json
+{
+  "error": "Invalid pizza size"
 }
 ```
 
@@ -228,44 +258,33 @@ curl -X POST http://localhost:8080/api/orders \
 
 ### 3. List Orders
 
-Get order history - optionally filter by user_id.
+Get order history for the authenticated user.
 
-**Endpoint:** `GET /api/orders/list` or `GET /api/orders/list?user_id=1`
+**Endpoint:** `GET /api/v1/orders/list`
 
-**Authentication:** API Key required
+**Authentication:** Session cookie required (returns orders for the logged-in user only)
 
-**Query Parameters:**
-- `user_id` (optional): Filter orders for a specific user. If omitted, returns all orders.
+**Note:** The API automatically returns orders for the authenticated user. You cannot query other users' orders.
 
-**Example 1: Get all orders (admin view)**
+**Example 1: Get your orders**
 ```bash
-curl -H "Authorization: Bearer your-secret-api-key-here" \
-  http://localhost:8080/api/orders/list
+curl -b cookies.txt http://localhost:8080/api/v1/orders/list
 ```
 
-**Example 2: Get orders for specific user**
+**Example 2: Using formatted output with jq**
 ```bash
-curl -H "Authorization: Bearer your-secret-api-key-here" \
-  http://localhost:8080/api/orders/list?user_id=1
+curl -s -b cookies.txt http://localhost:8080/api/v1/orders/list | jq '.'
 ```
 
-**Example 3: Using formatted output with jq**
+**Example 3: Get only order IDs and totals**
 ```bash
-curl -s -H "Authorization: Bearer your-secret-api-key-here" \
-  http://localhost:8080/api/orders/list?user_id=1 | jq '.'
-```
-
-**Example 4: Get only order IDs and totals**
-```bash
-curl -s -H "Authorization: Bearer your-secret-api-key-here" \
-  http://localhost:8080/api/orders/list?user_id=1 | \
+curl -s -b cookies.txt http://localhost:8080/api/v1/orders/list | \
   jq '.[] | {id: .id, total: .total}'
 ```
 
-**Example 5: Calculate total spent by user**
+**Example 4: Calculate total amount spent**
 ```bash
-curl -s -H "Authorization: Bearer your-secret-api-key-here" \
-  http://localhost:8080/api/orders/list?user_id=1 | \
+curl -s -b cookies.txt http://localhost:8080/api/v1/orders/list | \
   jq '[.[] | .total] | add'
 ```
 
@@ -405,7 +424,7 @@ export BRIX_API_KEY="dev-key-12345"
 export API_KEY="your-secret-api-key-here"
 
 curl -H "Authorization: Bearer $API_KEY" \
-  http://localhost:8080/api/menu
+  http://localhost:8080/api/v1/menu
 ```
 
 ### Create a reusable function
@@ -416,18 +435,18 @@ brix_api() {
 }
 
 # Usage:
-brix_api http://localhost:8080/api/menu
+brix_api http://localhost:8080/api/v1/menu
 ```
 
 ### Pretty print with Python
 ```bash
 curl -s -H "Authorization: Bearer $API_KEY" \
-  http://localhost:8080/api/menu | python -m json.tool
+  http://localhost:8080/api/v1/menu | python -m json.tool
 ```
 
 ### Save order response to file
 ```bash
-curl -X POST http://localhost:8080/api/orders \
+curl -X POST http://localhost:8080/api/v1/orders \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{...}' \
@@ -437,14 +456,14 @@ curl -X POST http://localhost:8080/api/orders \
 ### Check API availability
 ```bash
 curl -I -H "Authorization: Bearer $API_KEY" \
-  http://localhost:8080/api/menu
+  http://localhost:8080/api/v1/menu
 ```
 
 ### Batch order creation
 ```bash
 # Create orders for multiple users from a file
 cat orders.json | while read line; do
-  curl -X POST http://localhost:8080/api/orders \
+  curl -X POST http://localhost:8080/api/v1/orders \
     -H "Authorization: Bearer $API_KEY" \
     -H "Content-Type: application/json" \
     -d "$line"

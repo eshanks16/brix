@@ -71,8 +71,8 @@ type Topping struct {
 // API Request/Response types
 
 // CreateOrderRequest represents the JSON request to create an order
+// Note: user_id is extracted from session, not from request body
 type CreateOrderRequest struct {
-	UserID        int      `json:"user_id"`        // ID of user placing order
 	PizzaStyle    string   `json:"pizza_style"`
 	SizeID        int      `json:"size_id"`
 	LeftToppings  []string `json:"left_toppings"`

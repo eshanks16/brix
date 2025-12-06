@@ -414,7 +414,8 @@ func OrdersHandler(w http.ResponseWriter, r *http.Request) {
 
 // Helper functions
 
-func getSession(r *http.Request) *models.Session {
+// GetSession retrieves the session from the request cookie (exported for use by API package)
+func GetSession(r *http.Request) *models.Session {
 	cookie, err := r.Cookie("session_id")
 	if err != nil {
 		return nil
@@ -426,6 +427,22 @@ func getSession(r *http.Request) *models.Session {
 	}
 
 	return session
+}
+
+// getSession is a convenience wrapper for internal use
+func getSession(r *http.Request) *models.Session {
+	return GetSession(r)
+}
+
+// CreateSessionForTesting creates a session for testing (exported for use by other test packages)
+func CreateSessionForTesting(userID int, email, name string) string {
+	sessionID := generateSessionID()
+	sessions[sessionID] = &models.Session{
+		UserID: userID,
+		Email:  email,
+		Name:   name,
+	}
+	return sessionID
 }
 
 func generateSessionID() string {
