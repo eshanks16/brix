@@ -1,6 +1,7 @@
 package api
 
 import (
+	"brix-pizza/internal/handlers"
 	"brix-pizza/internal/models"
 	"database/sql"
 	"encoding/json"
@@ -133,24 +134,23 @@ func createOrderHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check for valid session
+	session := handlers.GetSession(r)
+	if session == nil {
+		respondError(w, "Unauthorized - valid session required", http.StatusUnauthorized)
+		return
+	}
+
 	var req models.CreateOrderRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondError(w, "Invalid JSON request", http.StatusBadRequest)
 		return
 	}
 
-	// Verify user exists
-	var userExists int
-	err := db.QueryRow("SELECT COUNT(*) FROM users WHERE id = ?", req.UserID).Scan(&userExists)
-	if err != nil || userExists == 0 {
-		respondError(w, "Invalid user_id", http.StatusBadRequest)
-		return
-	}
-
 	// Get base price from database by size ID
 	var basePrice float64
 	var sizeName string
-	err = db.QueryRow("SELECT base_price, name FROM pizza_sizes WHERE id = ?", req.SizeID).Scan(&basePrice, &sizeName)
+	err := db.QueryRow("SELECT base_price, name FROM pizza_sizes WHERE id = ?", req.SizeID).Scan(&basePrice, &sizeName)
 	if err != nil {
 		respondError(w, "Invalid pizza size", http.StatusBadRequest)
 		return
@@ -209,7 +209,7 @@ func createOrderHandler(w http.ResponseWriter, r *http.Request) {
 	defer stmt.Close()
 
 	result, err := stmt.Exec(
-		req.UserID,
+		session.UserID,
 		req.PizzaStyle,
 		sizeName,
 		leftToppingsStr,
@@ -251,22 +251,17 @@ func getOrdersHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get user_id from query parameter (optional - if not provided, returns all orders)
-	userIDStr := r.URL.Query().Get("user_id")
-
-	var query string
-	var args []interface{}
-
-	if userIDStr != "" {
-		// Filter by specific user
-		query = `SELECT id, pizza_style, size, left_toppings, right_toppings, whole_toppings, total, status, created_at
-			FROM orders WHERE user_id = ? ORDER BY created_at DESC`
-		args = append(args, userIDStr)
-	} else {
-		// Return all orders (admin view)
-		query = `SELECT id, pizza_style, size, left_toppings, right_toppings, whole_toppings, total, status, created_at
-			FROM orders ORDER BY created_at DESC`
+	// Check for valid session
+	session := handlers.GetSession(r)
+	if session == nil {
+		respondError(w, "Unauthorized - valid session required", http.StatusUnauthorized)
+		return
 	}
+
+	// Return orders for the authenticated user only
+	query := `SELECT id, pizza_style, size, left_toppings, right_toppings, whole_toppings, total, status, created_at
+		FROM orders WHERE user_id = ? ORDER BY created_at DESC`
+	args := []interface{}{session.UserID}
 
 	// Fetch orders
 	rows, err := db.Query(query, args...)

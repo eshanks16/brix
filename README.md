@@ -47,7 +47,7 @@ export DATABASE_URL="user:password@tcp(localhost:3306)/brix_pizza"
 go run main.go
 ```
 
-**Note:** Set `BRIX_API_KEY` environment variable to secure the REST API endpoints with Bearer token authentication.
+**Note:** The REST API uses session-based authentication. Users must login first to obtain a session cookie. Optionally set `BRIX_API_KEY` environment variable for an additional layer of security with Bearer token authentication.
 
 3. Open your browser and navigate to:
 ```
@@ -179,7 +179,7 @@ Navigate to "My Orders" to see your order history with order details.
 
 ## REST API
 
-The application provides REST API endpoints for programmatic access. All API endpoints are under the `/api/*` path.
+The application provides REST API endpoints for programmatic access. All API endpoints are under the `/api/v1/*` path.
 
 **🔐 Authentication:** API endpoints require a Bearer token set via the `BRIX_API_KEY` environment variable.
 
@@ -189,21 +189,21 @@ The application provides REST API endpoints for programmatic access. All API end
 
 Retrieve available pizza styles, sizes, and toppings.
 
-**Endpoint:** `GET /api/menu`
+**Endpoint:** `GET /api/v1/menu`
 
 **Authentication:** Bearer token in `Authorization` header
 
 **Example:**
 ```bash
 curl -H "Authorization: Bearer your-api-key-here" \
-  http://localhost:8080/api/menu
+  http://localhost:8080/api/v1/menu
 ```
 
 Or using an environment variable:
 ```bash
 export API_KEY="your-api-key-here"
 curl -H "Authorization: Bearer $API_KEY" \
-  http://localhost:8080/api/menu
+  http://localhost:8080/api/v1/menu
 ```
 
 **Response:**
@@ -238,34 +238,39 @@ curl -H "Authorization: Bearer $API_KEY" \
 
 ### Create Order
 
-Place an order for a user (admin operation).
+Place an order for the authenticated user.
 
-**Endpoint:** `POST /api/orders`
+**Endpoint:** `POST /api/v1/orders`
 
-**Authentication:** Bearer token in `Authorization` header
+**Authentication:** Session cookie required (login first)
 
 **Request Body:**
 ```json
 {
-  "user_id": 1,
   "pizza_style": "New York Style",
   "size_id": 2,
   "left_toppings": ["Pepperoni", "Mushrooms"],
-  "right_toppings": ["Pepperoni", "Bell Peppers"]
+  "right_toppings": ["Pepperoni", "Bell Peppers"],
+  "whole_toppings": ["Extra Cheese"]
 }
 ```
 
+**Note:** The `user_id` is automatically extracted from your session.
+
 **Example:**
 ```bash
-curl -X POST http://localhost:8080/api/orders \
-  -H "Authorization: Bearer your-api-key-here" \
+# First, login to get session cookie
+curl -c cookies.txt -X POST http://localhost:8080/login \
+  -d "email=user@example.com&password=yourpassword"
+
+# Then, place order with session cookie
+curl -b cookies.txt -X POST http://localhost:8080/api/v1/orders \
   -H "Content-Type: application/json" \
   -d '{
-    "user_id": 1,
     "pizza_style": "New York Style",
     "size_id": 2,
     "left_toppings": ["Pepperoni", "Mushrooms"],
-    "right_toppings": ["Pepperoni", "Bell Peppers"]
+    "whole_toppings": ["Extra Cheese"]
   }'
 ```
 
@@ -286,24 +291,16 @@ curl -X POST http://localhost:8080/api/orders \
 
 ### List Orders
 
-Get order history for a specific user or all orders (admin operation).
+Get order history for the authenticated user.
 
-**Endpoint:** `GET /api/orders/list?user_id=1` (optional user_id parameter)
+**Endpoint:** `GET /api/v1/orders/list`
 
-**Authentication:** Bearer token in `Authorization` header
+**Authentication:** Session cookie required (returns orders for logged-in user only)
 
-**Example (specific user):**
-
-```bash
-curl -H "Authorization: Bearer your-api-key-here" \
-  http://localhost:8080/api/orders/list?user_id=1
-```
-
-**Example (all orders):**
+**Example:**
 
 ```bash
-curl -H "Authorization: Bearer your-api-key-here" \
-  http://localhost:8080/api/orders/list
+curl -b cookies.txt http://localhost:8080/api/v1/orders/list
 ```
 
 **Response:**
@@ -535,7 +532,7 @@ func TestMenuHandler_Success(t *testing.T) {
     defer db.Close()
 
     // Test the handler
-    req := httptest.NewRequest(http.MethodGet, "/api/menu", nil)
+    req := httptest.NewRequest(http.MethodGet, "/api/v1/menu", nil)
     w := httptest.NewRecorder()
     MenuHandler(w, req)
 

@@ -39,10 +39,10 @@ func main() {
 	http.HandleFunc("/place-order", handlers.PlaceOrderHandler)
 	http.HandleFunc("/orders", handlers.OrdersHandler)
 
-	// API Routes
-	http.HandleFunc("/api/menu", api.MenuHandler)
-	http.HandleFunc("/api/orders", api.CreateOrderHandler)
-	http.HandleFunc("/api/orders/list", api.GetOrdersHandler)
+	// API Routes (v1)
+	http.HandleFunc("/api/v1/menu", api.MenuHandler)
+	http.HandleFunc("/api/v1/orders", api.CreateOrderHandler)
+	http.HandleFunc("/api/v1/orders/list", api.GetOrdersHandler)
 
 	// Health Check Routes (for Kubernetes probes)
 	http.HandleFunc("/health/live", health.LivenessHandler)
@@ -70,7 +70,7 @@ func main() {
 	// Start server in a goroutine
 	go func() {
 		log.Printf("🍕 Brix Pizza is running on http://0.0.0.0:%s", port)
-		log.Printf("📡 API available at http://0.0.0.0:%s/api/*", port)
+		log.Printf("📡 API v1 available at http://0.0.0.0:%s/api/v1/*", port)
 		log.Printf("💚 Health checks: /health/live (liveness) and /health/ready (readiness)")
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Server failed to start: %v", err)
