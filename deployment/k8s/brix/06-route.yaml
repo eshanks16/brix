@@ -1,0 +1,22 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: brix-pizza
+  namespace: brix
+  labels:
+    app: brix-pizza
+spec:
+  # Hostname for the route (optional - OpenShift will auto-generate if omitted)
+  # host: brix-pizza.apps.your-cluster.example.com
+  to:
+    kind: Service
+    name: brix-pizza
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    # Enable TLS with edge termination (TLS terminates at the router)
+    termination: edge
+    # Redirect HTTP to HTTPS
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None

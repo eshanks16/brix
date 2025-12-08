@@ -6,7 +6,7 @@ metadata:
   labels:
     app: brix-pizza
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   ports:
   - port: 80
     targetPort: 8080
@@ -14,4 +14,7 @@ spec:
     name: http
   selector:
     app: brix-pizza
-  sessionAffinity: None
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
