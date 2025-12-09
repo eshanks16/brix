@@ -5,6 +5,8 @@ import (
 	"brix-pizza/internal/database"
 	"brix-pizza/internal/handlers"
 	"brix-pizza/internal/health"
+	"brix-pizza/internal/metrics"
+	"brix-pizza/internal/middleware"
 	"context"
 	"html/template"
 	"log"
@@ -13,6 +15,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -29,6 +33,9 @@ func main() {
 	// Initialize packages
 	handlers.Init(db, templates)
 	api.Init(db)
+
+	// Start database metrics collector (update every 15 seconds)
+	metrics.StartDatabaseMetricsCollector(db, 15*time.Second)
 
 	// HTML Routes
 	http.HandleFunc("/", handlers.HomeHandler)
@@ -48,6 +55,9 @@ func main() {
 	http.HandleFunc("/health/live", health.LivenessHandler)
 	http.HandleFunc("/health/ready", health.ReadinessHandler(db))
 
+	// Prometheus metrics endpoint
+	http.Handle("/metrics", promhttp.Handler())
+
 	// Static files
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
@@ -58,10 +68,10 @@ func main() {
 	}
 	addr := ":" + port
 
-	// Create HTTP server with timeouts
+	// Create HTTP server with timeouts and Prometheus middleware
 	srv := &http.Server{
 		Addr:         addr,
-		Handler:      nil, // use DefaultServeMux
+		Handler:      middleware.PrometheusMiddleware(http.DefaultServeMux),
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
@@ -72,6 +82,7 @@ func main() {
 		log.Printf("🍕 Brix Pizza is running on http://0.0.0.0:%s", port)
 		log.Printf("📡 API v1 available at http://0.0.0.0:%s/api/v1/*", port)
 		log.Printf("💚 Health checks: /health/live (liveness) and /health/ready (readiness)")
+		log.Printf("📊 Prometheus metrics: http://0.0.0.0:%s/metrics", port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Server failed to start: %v", err)
 		}

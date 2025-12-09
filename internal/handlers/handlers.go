@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"brix-pizza/internal/metrics"
 	"brix-pizza/internal/models"
 	"database/sql"
 	"html/template"
@@ -172,6 +173,9 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 			Name:   firstName + " " + lastName,
 		}
 
+		// Track user registration metric
+		metrics.UsersRegistered.Inc()
+
 		http.SetCookie(w, &http.Cookie{
 			Name:     "session_id",
 			Value:    sessionID,
@@ -229,6 +233,9 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 			Email:  user.Email,
 			Name:   user.FirstName + " " + user.LastName,
 		}
+
+		// Track user login metric
+		metrics.UserLoginsTotal.Inc()
 
 		http.SetCookie(w, &http.Cookie{
 			Name:     "session_id",
@@ -372,6 +379,10 @@ func PlaceOrderHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error saving order", http.StatusInternalServerError)
 		return
 	}
+
+	// Track order metrics
+	metrics.OrdersTotal.WithLabelValues(pizzaStyle, sizeName).Inc()
+	metrics.OrdersRevenue.Add(total)
 
 	http.Redirect(w, r, "/orders", http.StatusSeeOther)
 }
