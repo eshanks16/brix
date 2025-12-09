@@ -1,6 +1,7 @@
 package database
 
 import (
+	"os"
 	"testing"
 )
 
@@ -87,5 +88,88 @@ func TestSeedTestUser(t *testing.T) {
 
 	if email != "test@example.com" {
 		t.Errorf("Expected email 'test@example.com', got '%s'", email)
+	}
+}
+
+func TestSplitSQLStatements(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected int
+	}{
+		{
+			name: "single statement",
+			input: `CREATE TABLE test (
+				id INT PRIMARY KEY
+			);`,
+			expected: 1,
+		},
+		{
+			name: "multiple statements",
+			input: `
+				CREATE TABLE users (id INT);
+				CREATE TABLE orders (id INT);
+				CREATE TABLE products (id INT);
+			`,
+			expected: 3,
+		},
+		{
+			name: "with comments",
+			input: `
+				-- This is a comment
+				CREATE TABLE test1 (id INT);
+				-- Another comment
+				CREATE TABLE test2 (id INT);
+			`,
+			expected: 2,
+		},
+		{
+			name:     "empty input",
+			input:    "",
+			expected: 0,
+		},
+		{
+			name: "statement without semicolon",
+			input: `CREATE TABLE test (id INT)`,
+			expected: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := splitSQLStatements(tt.input)
+			if len(result) != tt.expected {
+				t.Errorf("Expected %d statements, got %d", tt.expected, len(result))
+			}
+		})
+	}
+}
+
+func TestInitDB(t *testing.T) {
+	// Ensure db directory exists before test
+	err := os.MkdirAll("./db", 0755)
+	if err != nil {
+		t.Fatalf("Failed to create db directory: %v", err)
+	}
+
+	// Clean up test database file after test
+	defer os.Remove("./db/orders.db")
+
+	// Test InitDB with SQLite (default)
+	db, err := InitDB()
+	if err != nil {
+		t.Fatalf("InitDB failed: %v", err)
+	}
+	defer db.Close()
+
+	// Verify database is functional
+	var count int
+	err = db.QueryRow("SELECT COUNT(*) FROM pizza_styles").Scan(&count)
+	if err != nil {
+		t.Errorf("Failed to query database: %v", err)
+	}
+
+	if count == 0 {
+		t.Error("Expected pizza styles to be seeded")
 	}
 }
