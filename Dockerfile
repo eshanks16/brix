@@ -19,8 +19,10 @@ COPY . .
 
 # Build the application
 # -ldflags="-w -s" strips debug information to reduce binary size
-# CGO_ENABLED=1 is needed for sqlite3 driver (even though we'll use MySQL in K8s)
-RUN CGO_ENABLED=1 GOOS=linux go build -ldflags="-w -s" -o brix-pizza .
+# CGO_ENABLED=1 is needed for sqlite3 driver
+# Set CC and disable problematic functions for musl compatibility
+# Buildx will automatically build natively for each target platform
+RUN CGO_ENABLED=1 CGO_CFLAGS="-D_LARGEFILE64_SOURCE" go build -ldflags="-w -s" -o brix-pizza .
 
 # Stage 2: Create minimal runtime image
 FROM alpine:latest
