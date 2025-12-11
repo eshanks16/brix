@@ -139,7 +139,7 @@ func TestRegisterHandler_POST_Success(t *testing.T) {
 	formData.Set("email", "newuser@example.com")
 	formData.Set("first_name", "New")
 	formData.Set("last_name", "User")
-	formData.Set("phone", "555-5678")
+	formData.Set("phone", "555-555-5678")
 	formData.Set("password", "password123")
 
 	req := httptest.NewRequest(http.MethodPost, "/register", strings.NewReader(formData.Encode()))
@@ -193,7 +193,7 @@ func TestRegisterHandler_POST_DuplicateEmail(t *testing.T) {
 	formData.Set("email", "test@example.com") // Same as seeded user
 	formData.Set("first_name", "Duplicate")
 	formData.Set("last_name", "User")
-	formData.Set("phone", "555-9999")
+	formData.Set("phone", "555-555-9999")
 	formData.Set("password", "password123")
 
 	req := httptest.NewRequest(http.MethodPost, "/register", strings.NewReader(formData.Encode()))
@@ -552,5 +552,114 @@ func TestGetSession_InvalidSessionID(t *testing.T) {
 
 	if session != nil {
 		t.Error("Expected nil session for invalid session ID")
+	}
+}
+
+// Validation tests
+
+func TestValidateEmail(t *testing.T) {
+	tests := []struct {
+		name    string
+		email   string
+		wantErr bool
+	}{
+		{"Valid email", "test@example.com", false},
+		{"Valid email with subdomain", "user@mail.example.com", false},
+		{"Valid email with numbers", "user123@example.com", false},
+		{"Empty email", "", true},
+		{"Email too long", strings.Repeat("a", 100) + "@example.com", true},
+		{"Invalid format - no @", "testexample.com", true},
+		{"Invalid format - no domain", "test@", true},
+		{"Invalid format - no local part", "@example.com", true},
+		{"Whitespace trimmed", "  test@example.com  ", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateEmail(tt.email)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validateEmail() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidateName(t *testing.T) {
+	tests := []struct {
+		name      string
+		nameInput string
+		fieldName string
+		wantErr   bool
+	}{
+		{"Valid name", "John", "First name", false},
+		{"Valid name with space", "Mary Jane", "First name", false},
+		{"Valid name with hyphen", "Mary-Jane", "First name", false},
+		{"Valid name with apostrophe", "O'Brien", "Last name", false},
+		{"Empty name", "", "First name", true},
+		{"Name too short", "A", "First name", true},
+		{"Name too long", strings.Repeat("a", 51), "First name", true},
+		{"Invalid characters - numbers", "John123", "First name", true},
+		{"Invalid characters - symbols", "John@Doe", "First name", true},
+		{"Whitespace trimmed", "  John  ", "First name", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateName(tt.nameInput, tt.fieldName)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validateName() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidatePhone(t *testing.T) {
+	tests := []struct {
+		name    string
+		phone   string
+		wantErr bool
+	}{
+		{"Valid US phone", "555-555-1234", false},
+		{"Valid phone with parens", "(555) 555-1234", false},
+		{"Valid phone with spaces", "555 555 1234", false},
+		{"Valid international format", "+1-555-555-1234", false},
+		{"Valid 10 digits only", "5555551234", false},
+		{"Empty phone", "", true},
+		{"Phone too short", "555-5678", true},
+		{"Phone too long", strings.Repeat("1", 21), true},
+		{"Invalid characters", "555-abc-1234", true},
+		{"Whitespace trimmed", "  555-555-1234  ", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validatePhone(tt.phone)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validatePhone() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidatePassword(t *testing.T) {
+	tests := []struct {
+		name     string
+		password string
+		wantErr  bool
+	}{
+		{"Valid password", "password123", false},
+		{"Valid minimum length", "123456", false},
+		{"Empty password", "", true},
+		{"Password too short", "12345", true},
+		{"Password too long", strings.Repeat("a", 101), true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validatePassword(tt.password)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validatePassword() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
 	}
 }

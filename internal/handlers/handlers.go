@@ -7,7 +7,9 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -116,11 +118,47 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		r.ParseForm()
 
-		email := r.FormValue("email")
-		firstName := r.FormValue("first_name")
-		lastName := r.FormValue("last_name")
-		phone := r.FormValue("phone")
+		email := strings.TrimSpace(r.FormValue("email"))
+		firstName := strings.TrimSpace(r.FormValue("first_name"))
+		lastName := strings.TrimSpace(r.FormValue("last_name"))
+		phone := strings.TrimSpace(r.FormValue("phone"))
 		password := r.FormValue("password")
+
+		// Validate input
+		if err := validateEmail(email); err != nil {
+			templates.ExecuteTemplate(w, "register.html", map[string]string{
+				"Error": err.Error(),
+			})
+			return
+		}
+
+		if err := validateName(firstName, "First name"); err != nil {
+			templates.ExecuteTemplate(w, "register.html", map[string]string{
+				"Error": err.Error(),
+			})
+			return
+		}
+
+		if err := validateName(lastName, "Last name"); err != nil {
+			templates.ExecuteTemplate(w, "register.html", map[string]string{
+				"Error": err.Error(),
+			})
+			return
+		}
+
+		if err := validatePhone(phone); err != nil {
+			templates.ExecuteTemplate(w, "register.html", map[string]string{
+				"Error": err.Error(),
+			})
+			return
+		}
+
+		if err := validatePassword(password); err != nil {
+			templates.ExecuteTemplate(w, "register.html", map[string]string{
+				"Error": err.Error(),
+			})
+			return
+		}
 
 		// Check if user already exists
 		var exists int
@@ -199,8 +237,23 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		r.ParseForm()
 
-		email := r.FormValue("email")
+		email := strings.TrimSpace(r.FormValue("email"))
 		password := r.FormValue("password")
+
+		// Validate input
+		if err := validateEmail(email); err != nil {
+			templates.ExecuteTemplate(w, "login.html", map[string]string{
+				"Error": err.Error(),
+			})
+			return
+		}
+
+		if err := validatePassword(password); err != nil {
+			templates.ExecuteTemplate(w, "login.html", map[string]string{
+				"Error": err.Error(),
+			})
+			return
+		}
 
 		var user models.User
 		err := db.QueryRow(`SELECT id, first_name, last_name, email, password_hash
@@ -283,8 +336,29 @@ func PlaceOrderHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 
 	// Get form values
-	pizzaStyle := r.FormValue("pizza_style")
-	sizeID := r.FormValue("size")
+	pizzaStyle := strings.TrimSpace(r.FormValue("pizza_style"))
+	sizeID := strings.TrimSpace(r.FormValue("size"))
+
+	// Validate pizza style is not empty
+	if pizzaStyle == "" {
+		http.Error(w, "Pizza style is required", http.StatusBadRequest)
+		return
+	}
+
+	// Validate size is not empty
+	if sizeID == "" {
+		http.Error(w, "Pizza size is required", http.StatusBadRequest)
+		return
+	}
+
+	// Validate pizza style exists in database
+	var styleExists int
+	err := db.QueryRow("SELECT COUNT(*) FROM pizza_styles WHERE name = ? AND active = 1", pizzaStyle).Scan(&styleExists)
+	if err != nil || styleExists == 0 {
+		http.Error(w, "Invalid pizza style", http.StatusBadRequest)
+		log.Printf("Invalid pizza style: %s", pizzaStyle)
+		return
+	}
 
 	// Parse topping selections - now using radio buttons with format: topping_{name} = "left" | "right" | "whole"
 	var leftToppings, rightToppings, wholeToppings []string
@@ -307,7 +381,7 @@ func PlaceOrderHandler(w http.ResponseWriter, r *http.Request) {
 	// Get base price from database by size ID
 	var basePrice float64
 	var sizeName string
-	err := db.QueryRow("SELECT base_price, name FROM pizza_sizes WHERE id = ?", sizeID).Scan(&basePrice, &sizeName)
+	err = db.QueryRow("SELECT base_price, name FROM pizza_sizes WHERE id = ?", sizeID).Scan(&basePrice, &sizeName)
 	if err != nil {
 		http.Error(w, "Invalid pizza size", http.StatusBadRequest)
 		log.Printf("Error fetching size: %v", err)
@@ -469,4 +543,89 @@ func joinStrings(strs []string, sep string) string {
 		result += s
 	}
 	return result
+}
+
+// Validation functions
+
+var (
+	emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
+	nameRegex  = regexp.MustCompile(`^[A-Za-z\s\-']+$`)
+	phoneRegex = regexp.MustCompile(`^[\d\s\-\(\)\+]+$`)
+)
+
+// validateEmail validates an email address
+func validateEmail(email string) error {
+	email = strings.TrimSpace(email)
+	if len(email) == 0 {
+		return &ValidationError{"Email is required"}
+	}
+	if len(email) > 100 {
+		return &ValidationError{"Email must be 100 characters or less"}
+	}
+	if !emailRegex.MatchString(email) {
+		return &ValidationError{"Invalid email format"}
+	}
+	return nil
+}
+
+// validateName validates a first or last name
+func validateName(name, fieldName string) error {
+	name = strings.TrimSpace(name)
+	if len(name) == 0 {
+		return &ValidationError{fieldName + " is required"}
+	}
+	if len(name) < 2 {
+		return &ValidationError{fieldName + " must be at least 2 characters"}
+	}
+	if len(name) > 50 {
+		return &ValidationError{fieldName + " must be 50 characters or less"}
+	}
+	if !nameRegex.MatchString(name) {
+		return &ValidationError{fieldName + " can only contain letters, spaces, hyphens, and apostrophes"}
+	}
+	return nil
+}
+
+// validatePhone validates a phone number
+func validatePhone(phone string) error {
+	phone = strings.TrimSpace(phone)
+	if len(phone) == 0 {
+		return &ValidationError{"Phone number is required"}
+	}
+	// Remove non-digit characters for length check
+	digits := regexp.MustCompile(`\d`).FindAllString(phone, -1)
+	digitCount := len(digits)
+	if digitCount < 10 {
+		return &ValidationError{"Phone number must contain at least 10 digits"}
+	}
+	if len(phone) > 20 {
+		return &ValidationError{"Phone number must be 20 characters or less"}
+	}
+	if !phoneRegex.MatchString(phone) {
+		return &ValidationError{"Invalid phone number format"}
+	}
+	return nil
+}
+
+// validatePassword validates a password
+func validatePassword(password string) error {
+	if len(password) == 0 {
+		return &ValidationError{"Password is required"}
+	}
+	if len(password) < 6 {
+		return &ValidationError{"Password must be at least 6 characters"}
+	}
+	if len(password) > 100 {
+		return &ValidationError{"Password must be 100 characters or less"}
+	}
+	return nil
+}
+
+// ValidationError represents a validation error
+type ValidationError struct {
+	Message string
+}
+
+func (e *ValidationError) Error() string {
+	return e.Message
 }
