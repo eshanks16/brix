@@ -126,18 +126,66 @@ input[type="tel"],
 input[type="number"],
 select {
     width: 100%;
-    padding: 12px;
+    padding: 14px 16px;
     border: 2px solid #ddd;
     border-radius: 8px;
     font-size: 16px;
-    transition: border-color 0.3s;
+    font-family: inherit;
+    transition: border-color 0.3s, box-shadow 0.3s;
     box-sizing: border-box;
+    background-color: white;
+    cursor: pointer;
+}
+
+/* Make select dropdowns taller and more prominent */
+select {
+    padding: 16px 18px;
+    font-size: 17px;
+    font-weight: 500;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 20px;
+    padding-right: 45px;
+}
+
+/* Make pizza style dropdown even more prominent */
+select#pizza_style {
+    padding: 18px 20px;
+    font-size: 18px;
+    font-weight: 600;
+    background-size: 22px;
+    min-height: 56px;
+}
+
+select#size {
+    padding: 16px 18px;
+    font-size: 17px;
+    font-weight: 500;
+    min-height: 52px;
+}
+
+/* Dropdown options styling */
+select option {
+    padding: 12px;
+    font-size: 16px;
 }
 
 input:focus,
 select:focus {
     outline: none;
     border-color: #3A5F3A;
+    box-shadow: 0 0 0 3px rgba(58, 95, 58, 0.1);
+}
+
+/* Improve input styling for better uniformity */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="tel"],
+input[type="number"] {
+    cursor: text;
 }
 
 .btn-submit {
