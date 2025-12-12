@@ -39,6 +39,7 @@ func main() {
 
 	// HTML Routes
 	http.HandleFunc("/", handlers.HomeHandler)
+	http.HandleFunc("/specialties", handlers.SpecialtiesHandler)
 	http.HandleFunc("/register", handlers.RegisterHandler)
 	http.HandleFunc("/login", handlers.LoginHandler)
 	http.HandleFunc("/logout", handlers.LogoutHandler)

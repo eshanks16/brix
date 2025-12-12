@@ -33,7 +33,6 @@ RUN apk add --no-cache ca-certificates wget tzdata
 # Create non-root user for security
 RUN adduser -D -u 1000 -g brix brix
 
-# Create app directory
 WORKDIR /app
 
 # Copy binary from builder stage
@@ -43,8 +42,11 @@ COPY --from=builder /build/brix-pizza .
 COPY templates/ ./templates/
 COPY static/ ./static/
 
-# Change ownership to non-root user
-RUN chown -R brix:brix /app
+# Fix all permissions and make binary executable
+RUN chmod +x /app/brix-pizza && \
+    chmod -R 755 /app/templates && \
+    chmod -R 755 /app/static && \
+    chown -R brix:brix /app
 
 # Switch to non-root user
 USER brix
