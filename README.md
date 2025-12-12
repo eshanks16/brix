@@ -152,7 +152,8 @@ brix-pizza/
 │   │   ├── price-calculator.js      # Real-time price calculator
 │   │   ├── pizza-visualizer.js      # Interactive pizza builder
 │   │   ├── form-validator.js        # Order form validation
-│   │   └── registration-validator.js # Registration form validation
+│   │   ├── registration-validator.js # Registration form validation
+│   │   └── smooth-scroll.js         # Smooth scrolling navigation
 │   ├── img/
 │   │   ├── brix.png            # Mascot image
 │   │   ├── brix2.png           # Alternative mascot
