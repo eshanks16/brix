@@ -102,10 +102,15 @@
     function calculateToppingsPrice() {
         let total = 0;
 
-        // Get all checked radio buttons
+        // Get all checked radio buttons, excluding "none" selections
         const checkedRadios = document.querySelectorAll('input[type="radio"][name^="topping_"]:checked');
 
         checkedRadios.forEach(radio => {
+            // Skip if the value is "none"
+            if (radio.value === 'none') {
+                return;
+            }
+
             // Find the topping name element by traversing up and finding the first .topping-name in the same row
             let currentElement = radio.closest('.topping-radio');
 
@@ -130,8 +135,11 @@
         const checkedRadios = document.querySelectorAll('input[type="radio"][name^="topping_"]:checked');
 
         checkedRadios.forEach(radio => {
-            const toppingName = radio.name.replace('topping_', '');
-            selectedToppings.add(toppingName);
+            // Only count if not "none"
+            if (radio.value !== 'none') {
+                const toppingName = radio.name.replace('topping_', '');
+                selectedToppings.add(toppingName);
+            }
         });
 
         return selectedToppings.size;

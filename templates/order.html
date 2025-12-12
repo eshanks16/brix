@@ -55,12 +55,14 @@
 
                     <div class="toppings-grid">
                         <div class="topping-header">Topping</div>
+                        <div class="topping-header topping-icon"><span title="None">✖️</span></div>
                         <div class="topping-header topping-icon"><span title="Left Half">🍕◐</span></div>
                         <div class="topping-header topping-icon"><span title="Whole Pizza">🍕</span></div>
                         <div class="topping-header topping-icon"><span title="Right Half">🍕◑</span></div>
 
                         {{range .Toppings}}
                         <div class="topping-name">{{.Name}} (${{printf "%.2f" .Price}})</div>
+                        <div class="topping-radio"><input type="radio" name="topping_{{.Name}}" value="none" checked></div>
                         <div class="topping-radio"><input type="radio" name="topping_{{.Name}}" value="left"></div>
                         <div class="topping-radio"><input type="radio" name="topping_{{.Name}}" value="whole"></div>
                         <div class="topping-radio"><input type="radio" name="topping_{{.Name}}" value="right"></div>
