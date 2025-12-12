@@ -885,6 +885,83 @@ tr:hover {
     padding: 10px;
 }
 
+/* Form Validation Styles */
+.required-indicator {
+    color: #C0392B;
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.field-error-message {
+    color: #C0392B;
+    font-size: 0.9em;
+    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.field-error-message::before {
+    content: '⚠️';
+    font-size: 1em;
+}
+
+.field-success-message {
+    color: #3A5F3A;
+    font-size: 0.9em;
+    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.field-success-message::before {
+    content: '✓';
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+.form-error-summary {
+    background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+    border: 2px solid #C0392B;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 10px rgba(192, 57, 43, 0.2);
+}
+
+.error-summary-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+    color: #C0392B;
+}
+
+.error-icon {
+    font-size: 1.5em;
+}
+
+.error-list {
+    list-style: none;
+    padding-left: 35px;
+}
+
+.error-list li {
+    color: #666;
+    padding: 5px 0;
+    position: relative;
+}
+
+.error-list li::before {
+    content: '•';
+    color: #C0392B;
+    font-weight: bold;
+    position: absolute;
+    left: -15px;
+}
+
 @media (max-width: 768px) {
     header h1 {
         font-size: 2em;
