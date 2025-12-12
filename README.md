@@ -148,6 +148,8 @@ brix-pizza/
 ├── static/                      # Static assets
 │   ├── css/
 │   │   └── style.css           # Application styles
+│   ├── js/
+│   │   └── price-calculator.js # Real-time price calculator
 │   ├── img/
 │   │   ├── brix.png            # Mascot image
 │   │   ├── brix2.png           # Alternative mascot

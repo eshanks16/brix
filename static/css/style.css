@@ -753,6 +753,76 @@ tr:hover {
     opacity: 0.95;
 }
 
+/* Price Calculator Styles */
+.price-summary {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 2px solid #3A5F3A;
+    border-radius: 12px;
+    padding: 25px;
+    margin: 30px 0;
+    box-shadow: 0 4px 15px rgba(58, 95, 58, 0.15);
+}
+
+.price-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.price-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    font-size: 1.1em;
+}
+
+.price-line.price-total {
+    border-top: 2px solid #3A5F3A;
+    padding-top: 15px;
+    margin-top: 8px;
+    font-weight: 700;
+    font-size: 1.3em;
+    color: #2F4D2F;
+}
+
+.price-label {
+    color: #555;
+    font-weight: 500;
+}
+
+.price-total .price-label {
+    color: #2F4D2F;
+}
+
+.price-value {
+    font-weight: 600;
+    color: #3A5F3A;
+    font-size: 1.1em;
+    transition: all 0.3s ease;
+}
+
+.price-total .price-value {
+    font-size: 1.4em;
+    color: #2F4D2F;
+}
+
+/* Price pulse animation */
+@keyframes pricePulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); color: #C0392B; }
+    100% { transform: scale(1); }
+}
+
+.price-pulse {
+    animation: pricePulse 0.3s ease;
+}
+
+#topping-count {
+    font-weight: 600;
+    color: #3A5F3A;
+}
+
 @media (max-width: 768px) {
     header h1 {
         font-size: 2em;
