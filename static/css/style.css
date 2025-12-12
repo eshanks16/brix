@@ -823,6 +823,68 @@ tr:hover {
     color: #3A5F3A;
 }
 
+/* Pizza Visualizer Styles */
+.pizza-visualizer {
+    background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+    border: 2px solid #E67E22;
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 15px rgba(230, 126, 34, 0.15);
+}
+
+.pizza-visualizer h3 {
+    color: #C0392B;
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 1.4em;
+}
+
+.pizza-container {
+    max-width: 300px;
+    margin: 0 auto 20px;
+    background: white;
+    border-radius: 50%;
+    padding: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.pizza-svg {
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.topping-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    padding-top: 15px;
+    border-top: 2px solid #E67E22;
+}
+
+.legend-item {
+    background: #f8f9fa;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.9em;
+    color: #333;
+    border: 1px solid #dee2e6;
+}
+
+.legend-item .placement {
+    color: #666;
+    font-size: 0.85em;
+    font-style: italic;
+}
+
+.legend-empty {
+    color: #999;
+    font-style: italic;
+    padding: 10px;
+}
+
 @media (max-width: 768px) {
     header h1 {
         font-size: 2em;
