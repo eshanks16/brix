@@ -8,7 +8,7 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background:
         linear-gradient(rgba(192, 57, 43, 0.4), rgba(107, 42, 26, 0.5)),
-        url('/static/bricks1.jpg');
+        url('/static/img/bricks1.jpg');
     background-size: cover;
     background-attachment: fixed;
     background-position: center;

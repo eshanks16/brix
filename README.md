@@ -148,7 +148,12 @@ brix-pizza/
 ├── static/                      # Static assets
 │   ├── css/
 │   │   └── style.css           # Application styles
-│   └── brix.png                # Mascot image
+│   ├── img/
+│   │   ├── brix.png            # Mascot image
+│   │   ├── brix2.png           # Alternative mascot
+│   │   └── bricks1.jpg         # Brick background
+│   └── video/
+│       └── smoke.mp4           # Smoke video effect
 ├── docs/                        # Documentation
 │   └── API_EXAMPLES.md         # API usage examples
 ├── db/                          # Database directory (created on first run)
