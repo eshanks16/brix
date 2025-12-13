@@ -5,11 +5,11 @@ import (
 	"brix-pizza/internal/database"
 	"brix-pizza/internal/handlers"
 	"brix-pizza/internal/health"
+	"brix-pizza/internal/logger"
 	"brix-pizza/internal/metrics"
 	"brix-pizza/internal/middleware"
 	"context"
 	"html/template"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -20,10 +20,17 @@ import (
 )
 
 func main() {
+	// Initialize logger
+	logLevel := os.Getenv("LOG_LEVEL")
+	if logLevel == "" {
+		logLevel = "info"
+	}
+	logger.Init(logLevel)
+
 	// Initialize database
 	db, err := database.InitDB()
 	if err != nil {
-		log.Fatal("Database initialization failed:", err)
+		logger.Logger.Fatal().Err(err).Msg("Database initialization failed")
 	}
 	defer db.Close()
 
@@ -69,10 +76,10 @@ func main() {
 	}
 	addr := ":" + port
 
-	// Create HTTP server with timeouts and Prometheus middleware
+	// Create HTTP server with timeouts and logging + Prometheus middleware
 	srv := &http.Server{
 		Addr:         addr,
-		Handler:      middleware.PrometheusMiddleware(http.DefaultServeMux),
+		Handler:      middleware.RequestLogger(middleware.PrometheusMiddleware(http.DefaultServeMux)),
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
@@ -80,12 +87,21 @@ func main() {
 
 	// Start server in a goroutine
 	go func() {
-		log.Printf("🍕 Brix Pizza is running on http://0.0.0.0:%s", port)
-		log.Printf("📡 API v1 available at http://0.0.0.0:%s/api/v1/*", port)
-		log.Printf("💚 Health checks: /health/live (liveness) and /health/ready (readiness)")
-		log.Printf("📊 Prometheus metrics: http://0.0.0.0:%s/metrics", port)
+		logger.Logger.Info().
+			Str("port", port).
+			Str("address", "http://0.0.0.0:"+port).
+			Msg("🍕 Brix Pizza server starting")
+		logger.Logger.Info().
+			Str("api_endpoint", "http://0.0.0.0:"+port+"/api/v1/*").
+			Msg("📡 API v1 available")
+		logger.Logger.Info().
+			Msg("💚 Health checks: /health/live (liveness) and /health/ready (readiness)")
+		logger.Logger.Info().
+			Str("metrics_endpoint", "http://0.0.0.0:"+port+"/metrics").
+			Msg("📊 Prometheus metrics available")
+
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Server failed to start: %v", err)
+			logger.Logger.Fatal().Err(err).Msg("Server failed to start")
 		}
 	}()
 
@@ -94,7 +110,7 @@ func main() {
 	// Capture SIGINT (Ctrl+C) and SIGTERM (Kubernetes pod termination)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	log.Println("Shutting down server...")
+	logger.Logger.Info().Msg("Shutting down server...")
 
 	// Create a context with timeout for shutdown
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -102,8 +118,8 @@ func main() {
 
 	// Attempt graceful shutdown
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Printf("Server forced to shutdown: %v", err)
+		logger.Logger.Warn().Err(err).Msg("Server forced to shutdown")
 	}
 
-	log.Println("Server stopped")
+	logger.Logger.Info().Msg("Server stopped")
 }

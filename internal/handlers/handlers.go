@@ -1,11 +1,11 @@
 package handlers
 
 import (
+	"brix-pizza/internal/logger"
 	"brix-pizza/internal/metrics"
 	"brix-pizza/internal/models"
 	"database/sql"
 	"html/template"
-	"log"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -53,8 +53,8 @@ func OrderPageHandler(w http.ResponseWriter, r *http.Request) {
 	// Fetch pizza styles from database
 	styleRows, err := db.Query(`SELECT id, name, description, emoji FROM pizza_styles WHERE active = 1 ORDER BY display_order`)
 	if err != nil {
+		logger.Logger.Error().Err(err).Msg("Error fetching pizza styles")
 		http.Error(w, "Error loading menu", http.StatusInternalServerError)
-		log.Printf("Error fetching pizza styles: %v", err)
 		return
 	}
 	defer styleRows.Close()
@@ -72,8 +72,8 @@ func OrderPageHandler(w http.ResponseWriter, r *http.Request) {
 	// Fetch pizza sizes from database
 	sizeRows, err := db.Query(`SELECT id, name, diameter, base_price FROM pizza_sizes WHERE active = 1 ORDER BY display_order`)
 	if err != nil {
+		logger.Logger.Error().Err(err).Msg("Error fetching pizza sizes")
 		http.Error(w, "Error loading menu", http.StatusInternalServerError)
-		log.Printf("Error fetching pizza sizes: %v", err)
 		return
 	}
 	defer sizeRows.Close()
@@ -91,8 +91,8 @@ func OrderPageHandler(w http.ResponseWriter, r *http.Request) {
 	// Fetch toppings from database
 	toppingRows, err := db.Query(`SELECT id, name, price, category FROM toppings WHERE active = 1 ORDER BY display_order`)
 	if err != nil {
+		logger.Logger.Error().Err(err).Msg("Error fetching toppings")
 		http.Error(w, "Error loading menu", http.StatusInternalServerError)
-		log.Printf("Error fetching toppings: %v", err)
 		return
 	}
 	defer toppingRows.Close()
@@ -296,6 +296,15 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 			Name:   user.FirstName + " " + user.LastName,
 		}
 
+		// Log successful login
+		logger.Logger.Info().
+			Int("user_id", user.ID).
+			Str("email", user.Email).
+			Str("name", user.FirstName+" "+user.LastName).
+			Str("session_id", sessionID).
+			Str("remote_addr", r.RemoteAddr).
+			Msg("User logged in successfully")
+
 		// Track user login metric
 		metrics.UserLoginsTotal.Inc()
 
@@ -315,8 +324,28 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 // LogoutHandler handles user logout
 func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("session_id")
+	var sessionID string
+	var userID int
+	var email string
+
 	if err == nil {
-		delete(sessions, cookie.Value)
+		sessionID = cookie.Value
+		// Get session info before deleting for logging
+		if session, exists := sessions[sessionID]; exists {
+			userID = session.UserID
+			email = session.Email
+		}
+		delete(sessions, sessionID)
+	}
+
+	// Log logout event
+	if userID > 0 {
+		logger.Logger.Info().
+			Int("user_id", userID).
+			Str("email", email).
+			Str("session_id", sessionID).
+			Str("remote_addr", r.RemoteAddr).
+			Msg("User logged out")
 	}
 
 	http.SetCookie(w, &http.Cookie{
@@ -364,8 +393,11 @@ func PlaceOrderHandler(w http.ResponseWriter, r *http.Request) {
 	var styleExists int
 	err := db.QueryRow("SELECT COUNT(*) FROM pizza_styles WHERE name = ? AND active = 1", pizzaStyle).Scan(&styleExists)
 	if err != nil || styleExists == 0 {
+		logger.Logger.Warn().
+			Str("pizza_style", pizzaStyle).
+			Int("user_id", session.UserID).
+			Msg("Invalid pizza style selected")
 		http.Error(w, "Invalid pizza style", http.StatusBadRequest)
-		log.Printf("Invalid pizza style: %s", pizzaStyle)
 		return
 	}
 
@@ -392,8 +424,12 @@ func PlaceOrderHandler(w http.ResponseWriter, r *http.Request) {
 	var sizeName string
 	err = db.QueryRow("SELECT base_price, name FROM pizza_sizes WHERE id = ?", sizeID).Scan(&basePrice, &sizeName)
 	if err != nil {
+		logger.Logger.Error().
+			Err(err).
+			Str("size_id", sizeID).
+			Int("user_id", session.UserID).
+			Msg("Error fetching pizza size")
 		http.Error(w, "Invalid pizza size", http.StatusBadRequest)
-		log.Printf("Error fetching size: %v", err)
 		return
 	}
 
@@ -415,7 +451,11 @@ func PlaceOrderHandler(w http.ResponseWriter, r *http.Request) {
 		var price float64
 		err := db.QueryRow("SELECT price FROM toppings WHERE name = ?", toppingName).Scan(&price)
 		if err != nil {
-			log.Printf("Error fetching topping price for %s: %v", toppingName, err)
+			logger.Logger.Warn().
+				Err(err).
+				Str("topping_name", toppingName).
+				Int("user_id", session.UserID).
+				Msg("Error fetching topping price")
 			continue
 		}
 		toppingCost += price
@@ -443,12 +483,16 @@ func PlaceOrderHandler(w http.ResponseWriter, r *http.Request) {
 	stmt, err := db.Prepare(`INSERT INTO orders (user_id, pizza_style, size, left_toppings, right_toppings, whole_toppings, total)
 		VALUES (?, ?, ?, ?, ?, ?, ?)`)
 	if err != nil {
+		logger.Logger.Error().
+			Err(err).
+			Int("user_id", session.UserID).
+			Msg("Error preparing order insert statement")
 		http.Error(w, "Error creating order", http.StatusInternalServerError)
 		return
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(
+	result, err := stmt.Exec(
 		session.UserID,
 		pizzaStyle,
 		sizeName,
@@ -459,9 +503,31 @@ func PlaceOrderHandler(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
+		logger.Logger.Error().
+			Err(err).
+			Int("user_id", session.UserID).
+			Str("pizza_style", pizzaStyle).
+			Str("size", sizeName).
+			Msg("Error saving order to database")
 		http.Error(w, "Error saving order", http.StatusInternalServerError)
 		return
 	}
+
+	// Get the order ID
+	orderID, _ := result.LastInsertId()
+
+	// Log successful order creation
+	logger.Logger.Info().
+		Int64("order_id", orderID).
+		Int("user_id", session.UserID).
+		Str("email", session.Email).
+		Str("pizza_style", pizzaStyle).
+		Str("size", sizeName).
+		Str("left_toppings", leftToppingsStr).
+		Str("right_toppings", rightToppingsStr).
+		Str("whole_toppings", wholeToppingsStr).
+		Float64("total", total).
+		Msg("Order created successfully")
 
 	// Track order metrics
 	metrics.OrdersTotal.WithLabelValues(pizzaStyle, sizeName).Inc()

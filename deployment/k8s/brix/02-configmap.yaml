@@ -5,3 +5,4 @@ metadata:
   namespace: brix
 data:
   PORT: "8080"
+  LOG_LEVEL: "info"  # Options: debug, info, warn, error, fatal
