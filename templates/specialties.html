@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Specialty Pizzas - Brix Pizza</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/smooth-scroll.js" defer></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <video class="smoke-video" autoplay loop muted playsinline>
+                <source src="/static/video/smoke.mp4" type="video/mp4">
+            </video>
+            <h1>🍕 Brix Pizza</h1>
+            <p class="tagline">Brick oven perfection, delivered to your door</p>
+        </header>
+
+        <nav>
+            <a href="/">Home</a>
+            <a href="/specialties" class="active">Specialty Pizzas</a>
+            {{if .Session}}
+            <a href="/order">Order Now</a>
+            <a href="/orders">My Orders</a>
+            <a href="/logout" class="logout-link">Logout</a>
+            {{else}}
+            <a href="/login">Login</a>
+            <a href="/register">Register</a>
+            {{end}}
+        </nav>
+
+        <div class="specialties-showcase">
+            <h2>🔥 Signature Brick Oven Specialties 🔥</h2>
+            <p class="intro-text">Hand-crafted by our master pizza makers, each specialty pizza is cooked to perfection in our authentic brick oven at 900°F!</p>
+
+            <div class="specialty-grid">
+                <div class="specialty-card">
+                    <div class="specialty-header">
+                        <span class="specialty-icon">🔥</span>
+                        <h3>The Inferno</h3>
+                    </div>
+                    <p class="specialty-description">For those who love it hot! Spicy Italian sausage, jalapeños, crushed red pepper, and our signature hot sauce blend on a bed of mozzarella.</p>
+                    <div class="specialty-toppings">
+                        <strong>Toppings:</strong> Italian Sausage, Jalapeños, Red Pepper Flakes, Hot Sauce
+                    </div>
+                    <div class="specialty-heat">Heat Level: 🌶️🌶️🌶️</div>
+                </div>
+
+                <div class="specialty-card">
+                    <div class="specialty-header">
+                        <span class="specialty-icon">🍖</span>
+                        <h3>The Carnivore</h3>
+                    </div>
+                    <p class="specialty-description">A meat lover's dream! Pepperoni, Italian sausage, bacon, and ham piled high on our hand-tossed dough with extra cheese.</p>
+                    <div class="specialty-toppings">
+                        <strong>Toppings:</strong> Pepperoni, Italian Sausage, Bacon, Ham, Extra Cheese
+                    </div>
+                    <div class="specialty-best-seller">⭐ Best Seller</div>
+                </div>
+
+                <div class="specialty-card">
+                    <div class="specialty-header">
+                        <span class="specialty-icon">🌱</span>
+                        <h3>Garden Delight</h3>
+                    </div>
+                    <p class="specialty-description">Fresh from the garden! Mushrooms, bell peppers, onions, black olives, tomatoes, and spinach on our brick-fired crust.</p>
+                    <div class="specialty-toppings">
+                        <strong>Toppings:</strong> Mushrooms, Bell Peppers, Onions, Black Olives, Tomatoes, Spinach
+                    </div>
+                    <div class="specialty-veggie">🌿 Vegetarian</div>
+                </div>
+
+                <div class="specialty-card">
+                    <div class="specialty-header">
+                        <span class="specialty-icon">🏝️</span>
+                        <h3>Hawaiian Paradise</h3>
+                    </div>
+                    <p class="specialty-description">A tropical escape! Sweet pineapple chunks and Canadian bacon on a perfectly charred brick oven crust. Love it or hate it, you can't ignore it!</p>
+                    <div class="specialty-toppings">
+                        <strong>Toppings:</strong> Ham, Pineapple, Extra Cheese
+                    </div>
+                    <div class="specialty-controversial">🍍 Controversial</div>
+                </div>
+
+                <div class="specialty-card">
+                    <div class="specialty-header">
+                        <span class="specialty-icon">🇮🇹</span>
+                        <h3>Margherita Supreme</h3>
+                    </div>
+                    <p class="specialty-description">Classic Italian simplicity! Fresh mozzarella, roma tomatoes, basil, and a drizzle of extra virgin olive oil. Baked in our 900° brick oven for authentic flavor.</p>
+                    <div class="specialty-toppings">
+                        <strong>Toppings:</strong> Fresh Mozzarella, Tomatoes, Basil, Olive Oil
+                    </div>
+                    <div class="specialty-classic">👨‍🍳 Chef's Choice</div>
+                </div>
+
+                <div class="specialty-card">
+                    <div class="specialty-header">
+                        <span class="specialty-icon">🧀</span>
+                        <h3>Four Cheese Fusion</h3>
+                    </div>
+                    <p class="specialty-description">For cheese enthusiasts! A perfect blend of mozzarella, feta, parmesan, and ricotta creates a creamy, indulgent masterpiece.</p>
+                    <div class="specialty-toppings">
+                        <strong>Toppings:</strong> Mozzarella, Feta, Extra Cheese (representing multiple varieties)
+                    </div>
+                    <div class="specialty-indulgent">🧀 Cheese Lover's Dream</div>
+                </div>
+
+                <div class="specialty-card">
+                    <div class="specialty-header">
+                        <span class="specialty-icon">🥓</span>
+                        <h3>BBQ Chicken Bliss</h3>
+                    </div>
+                    <p class="specialty-description">Tangy BBQ sauce, grilled chicken, bacon, onions, and cilantro create a smoky, sweet sensation that'll have you coming back for more.</p>
+                    <div class="specialty-toppings">
+                        <strong>Toppings:</strong> Chicken, Bacon, Onions, BBQ Sauce
+                    </div>
+                    <div class="specialty-smoky">🔥 Smoky & Sweet</div>
+                </div>
+
+                <div class="specialty-card">
+                    <div class="specialty-header">
+                        <span class="specialty-icon">🏛️</span>
+                        <h3>The Mediterranean</h3>
+                    </div>
+                    <p class="specialty-description">A taste of the Greek isles! Feta cheese, black olives, tomatoes, spinach, and red onions on a crispy brick-oven base.</p>
+                    <div class="specialty-toppings">
+                        <strong>Toppings:</strong> Feta, Black Olives, Tomatoes, Spinach, Onions
+                    </div>
+                    <div class="specialty-healthy">💚 Light & Fresh</div>
+                </div>
+            </div>
+
+            <div class="cta-section-specialties">
+                <h2>Ready to Try One?</h2>
+                <p>Create your own custom pizza or order one of our signature specialties!</p>
+                {{if .Session}}
+                <a href="/order" class="btn-hero">Order Now</a>
+                {{else}}
+                <a href="/register" class="btn-hero">Sign Up to Order</a>
+                <a href="/login" class="btn-hero-outline">Login</a>
+                {{end}}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

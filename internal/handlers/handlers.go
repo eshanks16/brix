@@ -33,6 +33,15 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	templates.ExecuteTemplate(w, "home.html", session)
 }
 
+// SpecialtiesHandler displays the specialty pizzas page
+func SpecialtiesHandler(w http.ResponseWriter, r *http.Request) {
+	session := getSession(r)
+	data := map[string]interface{}{
+		"Session": session,
+	}
+	templates.ExecuteTemplate(w, "specialties.html", data)
+}
+
 // OrderPageHandler displays the order form
 func OrderPageHandler(w http.ResponseWriter, r *http.Request) {
 	session := getSession(r)

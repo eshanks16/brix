@@ -148,7 +148,18 @@ brix-pizza/
 ├── static/                      # Static assets
 │   ├── css/
 │   │   └── style.css           # Application styles
-│   └── brix.png                # Mascot image
+│   ├── js/
+│   │   ├── price-calculator.js      # Real-time price calculator
+│   │   ├── pizza-visualizer.js      # Interactive pizza builder
+│   │   ├── form-validator.js        # Order form validation
+│   │   ├── registration-validator.js # Registration form validation
+│   │   └── smooth-scroll.js         # Smooth scrolling navigation
+│   ├── img/
+│   │   ├── brix.png            # Mascot image
+│   │   ├── brix2.png           # Alternative mascot
+│   │   └── bricks1.jpg         # Brick background
+│   └── video/
+│       └── smoke.mp4           # Smoke video effect
 ├── docs/                        # Documentation
 │   └── API_EXAMPLES.md         # API usage examples
 ├── db/                          # Database directory (created on first run)

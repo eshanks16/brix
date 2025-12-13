@@ -5,16 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Brix Pizza - Authentic Brick Oven Pizza</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/smooth-scroll.js" defer></script>
 </head>
 <body>
     <div class="container">
         <header>
+            <video class="smoke-video" autoplay loop muted playsinline>
+                <source src="/static/video/smoke.mp4" type="video/mp4">
+            </video>
             <h1>🍕 Brix Pizza</h1>
             <p class="tagline">Brick oven perfection, delivered to your door</p>
         </header>
 
         <nav>
             <a href="/" class="active">Home</a>
+            <a href="/specialties">Specialty Pizzas</a>
             {{if .}}
                 <a href="/order">Order Now</a>
                 <a href="/orders">My Orders</a>
@@ -26,7 +31,7 @@
         </nav>
 
         <div class="hero-section">
-            <img src="/static/brix.png" alt="Brix Pizza Mascot" class="mascot-image">
+            <img src="/static/img/brix.png" alt="Brix Pizza Mascot" class="mascot-image">
             {{if .}}
                 <h2>Welcome back, {{.Name}}! 👋</h2>
                 <p class="hero-text">Ready to order another delicious pizza?</p>

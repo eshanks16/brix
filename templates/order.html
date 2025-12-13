@@ -5,16 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Brix Pizza - Order Now</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/price-calculator.js" defer></script>
+    <script src="/static/js/pizza-visualizer.js" defer></script>
+    <script src="/static/js/form-validator.js" defer></script>
+    <script src="/static/js/smooth-scroll.js" defer></script>
 </head>
 <body>
     <div class="container">
         <header>
+            <video class="smoke-video" autoplay loop muted playsinline>
+                <source src="/static/video/smoke.mp4" type="video/mp4">
+            </video>
             <h1>🍕 Brix Pizza</h1>
             <p class="tagline">Brick oven perfection, delivered to your door</p>
         </header>
 
         <nav>
             <a href="/">Home</a>
+            <a href="/specialties">Specialty Pizzas</a>
             <a href="/order" class="active">Order Now</a>
             <a href="/orders">My Orders</a>
             <a href="/logout" class="logout-link">Logout</a>
@@ -50,12 +58,14 @@
 
                     <div class="toppings-grid">
                         <div class="topping-header">Topping</div>
+                        <div class="topping-header topping-icon"><span title="None">✖️</span></div>
                         <div class="topping-header topping-icon"><span title="Left Half">🍕◐</span></div>
                         <div class="topping-header topping-icon"><span title="Whole Pizza">🍕</span></div>
                         <div class="topping-header topping-icon"><span title="Right Half">🍕◑</span></div>
 
                         {{range .Toppings}}
                         <div class="topping-name">{{.Name}} (${{printf "%.2f" .Price}})</div>
+                        <div class="topping-radio"><input type="radio" name="topping_{{.Name}}" value="none" checked></div>
                         <div class="topping-radio"><input type="radio" name="topping_{{.Name}}" value="left"></div>
                         <div class="topping-radio"><input type="radio" name="topping_{{.Name}}" value="whole"></div>
                         <div class="topping-radio"><input type="radio" name="topping_{{.Name}}" value="right"></div>

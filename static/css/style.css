@@ -6,7 +6,12 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #C0392B 0%, #A93226 100%);
+    background:
+        linear-gradient(rgba(192, 57, 43, 0.4), rgba(107, 42, 26, 0.5)),
+        url('/static/img/bricks1.jpg');
+    background-size: cover;
+    background-attachment: fixed;
+    background-position: center;
     min-height: 100vh;
     padding: 20px;
 }
@@ -16,15 +21,67 @@ body {
     margin: 0 auto;
     background: #FAF4E6;
     border-radius: 15px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.4),
+        inset 0 0 0 3px rgba(139, 69, 19, 0.3),
+        0 0 0 6px rgba(139, 69, 19, 0.2);
     overflow: hidden;
+    position: relative;
+}
+
+.container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 8px;
+    background: linear-gradient(90deg,
+        #D2691E 0%, #CD853F 20%, #D2691E 40%,
+        #8B4513 50%, #D2691E 60%, #CD853F 80%, #D2691E 100%);
+    z-index: 1;
 }
 
 header {
-    background: linear-gradient(135deg, #C0392B 0%, #A93226 100%);
+    background: linear-gradient(135deg, #C0392B 0%, #A93226 50%, #8B1A10 100%);
     color: white;
     padding: 40px;
     text-align: center;
+    position: relative;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+/* Smoke video background */
+header .smoke-video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+    opacity: 0.6;
+}
+
+/* Color overlay on smoke video to blend with red theme */
+header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: linear-gradient(to top, #C0392B, #E67E22, #F39C12, #F1C40F, rgba(255, 255, 255, 0.3));
+    mix-blend-mode: color;
+    pointer-events: none;
+    z-index: 1;
+}
+
+header h1,
+header .tagline {
+    position: relative;
+    z-index: 2;
 }
 
 header h1 {
@@ -226,7 +283,7 @@ input[type="number"] {
 
 .toppings-grid {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr;
+    grid-template-columns: 2fr 0.5fr 1fr 1fr 1fr;
     gap: 10px;
     align-items: center;
 }
@@ -523,6 +580,424 @@ tr:hover {
     opacity: 0.9;
 }
 
+/* Specialty Pizzas Page */
+.specialties-showcase {
+    padding: 40px;
+}
+
+.specialties-showcase h2 {
+    text-align: center;
+    color: #C0392B;
+    font-size: 2.5em;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.intro-text {
+    text-align: center;
+    color: #555;
+    font-size: 1.2em;
+    margin-bottom: 40px;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+}
+
+.specialty-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 30px;
+    margin-bottom: 60px;
+}
+
+.specialty-card {
+    background: white;
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    border: 3px solid transparent;
+    position: relative;
+    overflow: hidden;
+}
+
+.specialty-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+    background: linear-gradient(90deg, #C0392B, #E67E22, #C0392B);
+}
+
+.specialty-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(192, 57, 43, 0.3);
+    border-color: #C0392B;
+}
+
+.specialty-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.specialty-icon {
+    font-size: 3em;
+    line-height: 1;
+}
+
+.specialty-card h3 {
+    color: #C0392B;
+    font-size: 1.8em;
+    margin: 0;
+}
+
+.specialty-description {
+    color: #555;
+    line-height: 1.8;
+    margin-bottom: 20px;
+    font-size: 1.05em;
+}
+
+.specialty-toppings {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-size: 0.95em;
+    color: #666;
+    border-left: 4px solid #3A5F3A;
+}
+
+.specialty-toppings strong {
+    color: #333;
+}
+
+.specialty-heat,
+.specialty-best-seller,
+.specialty-veggie,
+.specialty-controversial,
+.specialty-classic,
+.specialty-indulgent,
+.specialty-smoky,
+.specialty-healthy {
+    display: inline-block;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.9em;
+    font-weight: 600;
+}
+
+.specialty-heat {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.specialty-best-seller {
+    background: #fff3e0;
+    color: #e65100;
+}
+
+.specialty-veggie {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.specialty-controversial {
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.specialty-classic {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.specialty-indulgent {
+    background: #fff9c4;
+    color: #f57f17;
+}
+
+.specialty-smoky {
+    background: #fbe9e7;
+    color: #bf360c;
+}
+
+.specialty-healthy {
+    background: #e0f2f1;
+    color: #00695c;
+}
+
+.cta-section-specialties {
+    text-align: center;
+    padding: 50px 40px;
+    background: linear-gradient(135deg, #3A5F3A 0%, #2F4D2F 100%);
+    color: white;
+    border-radius: 12px;
+    margin-top: 40px;
+}
+
+.cta-section-specialties h2 {
+    color: white;
+    margin-bottom: 15px;
+    font-size: 2.2em;
+}
+
+.cta-section-specialties p {
+    font-size: 1.2em;
+    margin-bottom: 25px;
+    opacity: 0.95;
+}
+
+/* Price Calculator Styles */
+.price-summary {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 2px solid #3A5F3A;
+    border-radius: 12px;
+    padding: 25px;
+    margin: 30px 0;
+    box-shadow: 0 4px 15px rgba(58, 95, 58, 0.15);
+}
+
+.price-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.price-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    font-size: 1.1em;
+}
+
+.price-line.price-total {
+    border-top: 2px solid #3A5F3A;
+    padding-top: 15px;
+    margin-top: 8px;
+    font-weight: 700;
+    font-size: 1.3em;
+    color: #2F4D2F;
+}
+
+.price-label {
+    color: #555;
+    font-weight: 500;
+}
+
+.price-total .price-label {
+    color: #2F4D2F;
+}
+
+.price-value {
+    font-weight: 600;
+    color: #3A5F3A;
+    font-size: 1.1em;
+    transition: all 0.3s ease;
+}
+
+.price-total .price-value {
+    font-size: 1.4em;
+    color: #2F4D2F;
+}
+
+/* Price pulse animation */
+@keyframes pricePulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); color: #C0392B; }
+    100% { transform: scale(1); }
+}
+
+.price-pulse {
+    animation: pricePulse 0.3s ease;
+}
+
+#topping-count {
+    font-weight: 600;
+    color: #3A5F3A;
+}
+
+/* Pizza Visualizer Styles */
+.pizza-visualizer {
+    background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+    border: 2px solid #E67E22;
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 15px rgba(230, 126, 34, 0.15);
+}
+
+.pizza-visualizer h3 {
+    color: #C0392B;
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 1.4em;
+}
+
+.pizza-container {
+    max-width: 300px;
+    margin: 0 auto 20px;
+    background: white;
+    border-radius: 50%;
+    padding: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.pizza-svg {
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.topping-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    padding-top: 15px;
+    border-top: 2px solid #E67E22;
+}
+
+.legend-item {
+    background: #f8f9fa;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.9em;
+    color: #333;
+    border: 1px solid #dee2e6;
+}
+
+.legend-item .placement {
+    color: #666;
+    font-size: 0.85em;
+    font-style: italic;
+}
+
+.legend-empty {
+    color: #999;
+    font-style: italic;
+    padding: 10px;
+}
+
+/* Form Validation Styles */
+.required-indicator {
+    color: #C0392B;
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.field-error-message {
+    color: #C0392B;
+    font-size: 0.9em;
+    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.field-error-message::before {
+    content: '⚠️';
+    font-size: 1em;
+}
+
+.field-success-message {
+    color: #3A5F3A;
+    font-size: 0.9em;
+    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.field-success-message::before {
+    content: '✓';
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+.form-error-summary {
+    background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+    border: 2px solid #C0392B;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 10px rgba(192, 57, 43, 0.2);
+}
+
+.error-summary-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+    color: #C0392B;
+}
+
+.error-icon {
+    font-size: 1.5em;
+}
+
+.error-list {
+    list-style: none;
+    padding-left: 35px;
+}
+
+.error-list li {
+    color: #666;
+    padding: 5px 0;
+    position: relative;
+}
+
+.error-list li::before {
+    content: '•';
+    color: #C0392B;
+    font-weight: bold;
+    position: absolute;
+    left: -15px;
+}
+
+/* Back to Top Button */
+.back-to-top {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #C0392B 0%, #E74C3C 100%);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 24px;
+    cursor: pointer;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(192, 57, 43, 0.3);
+    z-index: 1000;
+}
+
+.back-to-top:hover {
+    background: linear-gradient(135deg, #A93226 0%, #C0392B 100%);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(192, 57, 43, 0.4);
+}
+
+.back-to-top.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Smooth scroll behavior */
+html {
+    scroll-behavior: smooth;
+}
+
 @media (max-width: 768px) {
     header h1 {
         font-size: 2em;
@@ -546,8 +1021,21 @@ tr:hover {
     }
 
     .pizza-styles-grid,
-    .features-grid {
+    .features-grid,
+    .specialty-grid {
         grid-template-columns: 1fr;
+    }
+
+    .specialty-card h3 {
+        font-size: 1.4em;
+    }
+
+    .specialties-showcase h2 {
+        font-size: 1.8em;
+    }
+
+    .intro-text {
+        font-size: 1em;
     }
 
     .btn-hero,
