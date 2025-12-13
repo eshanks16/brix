@@ -1,9 +1,9 @@
 package database
 
 import (
+	"brix-pizza/internal/logger"
 	"database/sql"
 	"fmt"
-	"log"
 	"os"
 	"strings"
 	"time"
@@ -22,7 +22,7 @@ func InitDB() (*sql.DB, error) {
 
 	if databaseURL != "" {
 		// Use MySQL
-		log.Println("📊 Using MySQL database")
+		logger.Logger.Info().Msg("📊 Using MySQL database")
 		database, err = sql.Open("mysql", databaseURL)
 		if err != nil {
 			return nil, fmt.Errorf("failed to connect to MySQL: %w", err)
@@ -43,13 +43,13 @@ func InitDB() (*sql.DB, error) {
 			return nil, fmt.Errorf("failed to ping MySQL database: %w", err)
 		}
 
-		log.Println("✅ Successfully connected to MySQL database")
-		log.Printf("📊 Connection pool: max_open=25, max_idle=5, max_lifetime=5m")
+		logger.Logger.Info().Msg("✅ Successfully connected to MySQL database")
+		logger.Logger.Info().Msg("📊 Connection pool: max_open=25, max_idle=5, max_lifetime=5m")
 	} else {
 		// Use SQLite (default)
-		log.Println("⚠️  WARNING: Using SQLite database (not recommended for production)")
-		log.Println("⚠️  Set DATABASE_URL environment variable to use MySQL")
-		log.Println("⚠️  Example: DATABASE_URL=user:password@tcp(localhost:3306)/brix_pizza")
+		logger.Logger.Warn().Msg("⚠️  WARNING: Using SQLite database (not recommended for production)")
+		logger.Logger.Warn().Msg("⚠️  Set DATABASE_URL environment variable to use MySQL")
+		logger.Logger.Warn().Msg("⚠️  Example: DATABASE_URL=user:password@tcp(localhost:3306)/brix_pizza")
 
 		database, err = sql.Open("sqlite3", "./db/orders.db?_journal_mode=WAL&_busy_timeout=5000")
 		if err != nil {
@@ -73,6 +73,8 @@ func InitDB() (*sql.DB, error) {
 }
 
 func runMigrations(database *sql.DB) error {
+	logger.Logger.Info().Msg("Starting database migrations...")
+
 	// Detect database type
 	databaseURL := os.Getenv("DATABASE_URL")
 	isMySQL := databaseURL != ""
@@ -95,8 +97,10 @@ func runMigrations(database *sql.DB) error {
 
 	_, err := database.Exec(createMigrationsTableSQL)
 	if err != nil {
+		logger.Logger.Error().Err(err).Msg("Failed to create migrations table")
 		return err
 	}
+	logger.Logger.Info().Msg("Migrations table ready")
 
 	// Define all migrations in order
 	migrations := []struct {
@@ -235,10 +239,12 @@ func runMigrations(database *sql.DB) error {
 	}
 
 	// Apply each migration if not already applied
+	logger.Logger.Info().Int("migration_count", len(migrations)).Msg("Checking migrations...")
 	for _, migration := range migrations {
 		// Use a transaction with locking to prevent race conditions across multiple pods
 		tx, err := database.Begin()
 		if err != nil {
+			logger.Logger.Error().Err(err).Str("migration", migration.name).Msg("Failed to begin transaction")
 			return err
 		}
 		defer tx.Rollback()
@@ -257,7 +263,7 @@ func runMigrations(database *sql.DB) error {
 
 		if count == 0 {
 			// Migration not applied yet
-			log.Printf("Applying migration: %s", migration.name)
+			logger.Logger.Info().Str("migration", migration.name).Msg("Applying migration")
 
 			// Special handling for seed data migration with K8s-safe locking
 			if migration.name == "002_seed_menu_data" {
@@ -292,7 +298,7 @@ func runMigrations(database *sql.DB) error {
 									// Check if it's a duplicate column error (MySQL error 1060)
 									// This can happen in race conditions when multiple pods start simultaneously
 									if strings.Contains(err.Error(), "Error 1060") || strings.Contains(err.Error(), "Duplicate column") {
-										log.Printf("Column already exists (race condition), continuing...")
+										logger.Logger.Warn().Msg("Column already exists (race condition), continuing...")
 									} else {
 										return fmt.Errorf("failed to execute statement in migration %s: %v", migration.name, err)
 									}
@@ -321,13 +327,15 @@ func runMigrations(database *sql.DB) error {
 				}
 			}
 
-			log.Printf("Migration applied: %s", migration.name)
+			logger.Logger.Info().Str("migration", migration.name).Msg("Migration applied")
 		} else {
 			// Migration already applied, just roll back the transaction
+			logger.Logger.Debug().Str("migration", migration.name).Msg("Migration already applied, skipping")
 			tx.Rollback()
 		}
 	}
 
+	logger.Logger.Info().Msg("All migrations completed successfully")
 	return nil
 }
 
@@ -348,7 +356,7 @@ func seedMenuData(database *sql.DB) error {
 		// MySQL supports FOR UPDATE for row-level locking
 		_, err = tx.Exec("SELECT COUNT(*) FROM migrations WHERE name = '002_seed_menu_data' FOR UPDATE")
 		if err != nil {
-			log.Printf("Failed to acquire lock: %v", err)
+			logger.Logger.Warn().Err(err).Msg("Failed to acquire lock")
 		}
 	}
 	// SQLite doesn't support FOR UPDATE, but the transaction itself is exclusive
@@ -360,11 +368,11 @@ func seedMenuData(database *sql.DB) error {
 	tx.QueryRow("SELECT COUNT(*) FROM toppings").Scan(&toppingCount)
 
 	if styleCount > 0 || sizeCount > 0 || toppingCount > 0 {
-		log.Println("Menu data already seeded by another instance, skipping...")
+		logger.Logger.Info().Msg("Menu data already seeded by another instance, skipping...")
 		return tx.Commit()
 	}
 
-	log.Println("Seeding menu data...")
+	logger.Logger.Info().Msg("Seeding menu data...")
 
 	// Seed pizza styles
 	styles := []struct {
@@ -440,7 +448,7 @@ func seedMenuData(database *sql.DB) error {
 		}
 	}
 
-	log.Println("Menu data seeded successfully")
+	logger.Logger.Info().Msg("Menu data seeded successfully")
 	return tx.Commit()
 }
 

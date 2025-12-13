@@ -94,9 +94,9 @@ func main() {
 		logger.Logger.Info().
 			Str("api_endpoint", "http://0.0.0.0:"+port+"/api/v1/*").
 			Msg("📡 API v1 available")
-		logger.Logger.Info().
+		logger.Logger.Debug().
 			Msg("💚 Health checks: /health/live (liveness) and /health/ready (readiness)")
-		logger.Logger.Info().
+		logger.Logger.Debug().
 			Str("metrics_endpoint", "http://0.0.0.0:"+port+"/metrics").
 			Msg("📊 Prometheus metrics available")
 

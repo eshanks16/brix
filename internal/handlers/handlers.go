@@ -173,6 +173,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		var exists int
 		err := db.QueryRow("SELECT COUNT(*) FROM users WHERE email = ?", email).Scan(&exists)
 		if err != nil {
+			logger.Logger.Error().Err(err).Str("email", email).Msg("Failed to check existing user")
 			http.Error(w, "Database error", http.StatusInternalServerError)
 			return
 		}
@@ -187,6 +188,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		// Hash password using bcrypt
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 		if err != nil {
+			logger.Logger.Error().Err(err).Str("email", email).Msg("Failed to hash password")
 			http.Error(w, "Error creating account", http.StatusInternalServerError)
 			return
 		}
@@ -195,6 +197,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		stmt, err := db.Prepare(`INSERT INTO users (first_name, last_name, email, phone, password_hash)
 			VALUES (?, ?, ?, ?, ?)`)
 		if err != nil {
+			logger.Logger.Error().Err(err).Str("email", email).Msg("Failed to prepare insert statement")
 			http.Error(w, "Error creating account", http.StatusInternalServerError)
 			return
 		}
@@ -202,6 +205,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 		result, err := stmt.Exec(firstName, lastName, email, phone, string(hashedPassword))
 		if err != nil {
+			logger.Logger.Error().Err(err).Str("email", email).Msg("Failed to insert user")
 			http.Error(w, "Error creating account", http.StatusInternalServerError)
 			return
 		}
@@ -209,6 +213,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		// Auto-login: create session for newly registered user
 		userID, err := result.LastInsertId()
 		if err != nil {
+			logger.Logger.Error().Err(err).Str("email", email).Msg("Failed to get last insert ID")
 			http.Error(w, "Error creating session", http.StatusInternalServerError)
 			return
 		}
@@ -275,6 +280,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		} else if err != nil {
+			logger.Logger.Error().Err(err).Str("email", email).Msg("Failed to query user for login")
 			http.Error(w, "Database error", http.StatusInternalServerError)
 			return
 		}
