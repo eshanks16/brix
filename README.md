@@ -10,6 +10,8 @@ A demo pizza ordering application built with Go and SQLite.
 - 8 different pizza styles (New York, Chicago, Detroit, etc.)
 - View order history
 - **REST API endpoints** for programmatic access
+- **Structured logging** with zerolog for production-ready observability
+- **Prometheus metrics** for monitoring and alerting
 - SQLite database with automatic migrations
 - Clean, responsive UI with brick oven theme
 - Database-driven menu system
@@ -63,6 +65,7 @@ The application can be configured using the following environment variables:
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `PORT` | No | `8080` | HTTP server port. Useful for Kubernetes deployments. |
+| `LOG_LEVEL` | No | `info` | Logging level: `debug`, `info`, `warn`, `error`, `fatal` |
 | `BRIX_API_KEY` | No | _(none)_ | API key for securing REST API endpoints. If not set, API runs in unsecured mode (dev only). |
 | `DATABASE_URL` | No | SQLite | MySQL connection string in format: `user:password@tcp(host:port)/database` |
 
@@ -125,6 +128,71 @@ FLUSH PRIVILEGES;
 
 The application will automatically create all necessary tables using migrations when it starts.
 
+## Monitoring and Logging
+
+Brix Pizza includes production-ready monitoring and logging capabilities.
+
+### Structured Logging
+
+The application uses [zerolog](https://github.com/rs/zerolog) for structured JSON logging with human-readable console output in development.
+
+**Key logged events:**
+
+- User login/logout with user ID, email, session ID, and remote address
+- Order creation with order ID, user details, pizza configuration, and total
+- HTTP requests with request ID, method, path, status, duration, and bytes transferred
+- Database errors and validation failures
+
+**Example log output:**
+
+```
+2025-12-13T10:00:24-06:00 INF Request completed bytes=5393 duration_ms=0.329042 method=GET path=/ remote_addr=[::1]:60841 request_id=23b3c278-268c-4d7c-b6ba-eda9748e264a status=200
+2025-12-13T10:05:12-06:00 INF User logged in successfully email=john@example.com name=John Doe remote_addr=192.168.1.100:54321 session_id=abc123 user_id=42
+2025-12-13T10:07:45-06:00 INF Order created successfully email=john@example.com left_toppings=Pepperoni order_id=15 pizza_style=New York Style right_toppings=Mushrooms size=Large total=18.99 user_id=42 whole_toppings=
+```
+
+**Configure log level:**
+```bash
+export LOG_LEVEL=debug  # debug, info, warn, error, fatal
+go run main.go
+```
+
+### Prometheus Metrics
+
+The application exposes Prometheus metrics at `/metrics` for monitoring:
+
+**Available metrics:**
+
+- `http_requests_total` - Total HTTP requests by method, path, and status
+- `http_request_duration_seconds` - HTTP request latency histogram
+- `orders_total` - Total orders by pizza style and size
+- `orders_revenue` - Total revenue from all orders
+- `user_logins_total` - Total successful user logins
+- `database_connections` - Current database connections (open, in-use, idle)
+
+**Access metrics:**
+
+```bash
+curl http://localhost:8080/metrics
+```
+
+**Example output:**
+
+```
+# HELP http_requests_total Total number of HTTP requests
+# TYPE http_requests_total counter
+http_requests_total{method="GET",path="/",status="200"} 142
+
+# HELP orders_total Total number of orders
+# TYPE orders_total counter
+orders_total{pizza_style="New York Style",size="Large"} 25
+orders_total{pizza_style="Chicago Deep Dish",size="Medium"} 18
+
+# HELP orders_revenue Total revenue from orders
+# TYPE orders_revenue counter
+orders_revenue 1247.85
+```
+
 ## Project Structure
 
 ```
@@ -137,6 +205,15 @@ brix-pizza/
 │   │   └── database.go         # Database initialization and migrations
 │   ├── handlers/
 │   │   └── handlers.go         # HTML page handlers
+│   ├── logger/
+│   │   └── logger.go           # Structured logging configuration
+│   ├── middleware/
+│   │   ├── logging.go          # HTTP request logging middleware
+│   │   └── prometheus.go       # Prometheus metrics middleware
+│   ├── metrics/
+│   │   └── metrics.go          # Prometheus metrics definitions
+│   ├── health/
+│   │   └── health.go           # Health check handlers
 │   └── api/
 │       └── api.go              # REST API handlers
 ├── templates/                   # HTML templates

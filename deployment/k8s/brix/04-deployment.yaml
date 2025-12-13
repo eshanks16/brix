@@ -34,6 +34,11 @@ spec:
             configMapKeyRef:
               name: brix-pizza-config
               key: PORT
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: brix-pizza-config
+              key: LOG_LEVEL
         - name: BRIX_API_KEY
           valueFrom:
             secretKeyRef:

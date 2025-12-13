@@ -424,8 +424,20 @@ All configuration is managed through ConfigMap and Secrets:
 | Variable | Source | Description |
 |----------|--------|-------------|
 | `PORT` | ConfigMap | HTTP server port (default: 8080) |
+| `LOG_LEVEL` | ConfigMap | Logging level: `debug`, `info`, `warn`, `error`, `fatal` (default: info) |
 | `BRIX_API_KEY` | Secret | API authentication key |
 | `DATABASE_URL` | Secret | MySQL connection string |
+
+**To change the log level:**
+
+Edit the ConfigMap and restart the pods:
+```bash
+kubectl edit configmap brix-pizza-config -n brix
+# Change LOG_LEVEL to desired level (debug, info, warn, error, fatal)
+
+# Restart pods to pick up new config
+kubectl rollout restart deployment brix-pizza -n brix
+```
 
 ### Scaling
 
