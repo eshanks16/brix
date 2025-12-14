@@ -1,5 +1,7 @@
 # Brix Pizza
 
+<img src="static/img/brix.png" alt="Brix Pizza Mascot" width="150"/>
+
 A demo pizza ordering application built with Go and SQLite.
 
 ## Features
@@ -21,6 +23,8 @@ A demo pizza ordering application built with Go and SQLite.
 - Go 1.25 or higher
 - SQLite3 (for development, usually pre-installed on macOS/Linux)
 - MySQL 5.7+ or MariaDB 10.2+ (optional, for production)
+
+> **🚀 Want to deploy to Kubernetes instead?** Skip to the [Kubernetes Deployment](#-kubernetes-deployment) section for quick deployment instructions.
 
 ## Setup
 
@@ -647,76 +651,50 @@ go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//' |
   awk '{if ($1 < 70) exit 1}'
 ```
 
-## Kubernetes Deployment
+## 🚀 Kubernetes Deployment
 
-Brix Pizza is production-ready and can be deployed to Kubernetes with health checks, graceful shutdown, and horizontal pod autoscaling.
+Deploy Brix Pizza to Kubernetes in minutes with built-in MySQL database, health checks, and auto-scaling.
 
-### Quick Start
+### Quick Deploy
 
-1. **Build Docker image:**
-   ```bash
-   cd deployment
-   docker build -t your-registry/brix-pizza:latest -f Dockerfile ..
-   docker push your-registry/brix-pizza:latest
-   ```
+```bash
+# Deploy everything (MySQL + Application)
+kubectl apply -f deployment/k8s/brix/
+kubectl apply -f deployment/k8s/mysql/
 
-2. **Create secrets:**
-   ```bash
-   kubectl create secret generic brix-pizza-secrets \
-     --from-literal=api-key=$(openssl rand -hex 32) \
-     --from-literal=database-url="user:pass@tcp(mysql-host:3306)/brix_pizza" \
-     -n brix
-   ```
+# Check status
+kubectl get pods -n brix
 
-3. **Deploy:**
-   ```bash
-   kubectl apply -f deployment/k8s/namespace.yaml
-   kubectl apply -f deployment/k8s/configmap.yaml
-   kubectl apply -f deployment/k8s/deployment.yaml
-   kubectl apply -f deployment/k8s/service.yaml
-   ```
-
-4. **Verify:**
-   ```bash
-   kubectl get pods -n brix
-   kubectl get svc brix-pizza -n brix
-   ```
-
-### Features
-
-- **Health Checks**: Liveness (`/health/live`) and readiness (`/health/ready`) probes
-- **Graceful Shutdown**: Clean termination handling for zero-downtime deployments
-- **Horizontal Pod Autoscaling**: Automatic scaling based on CPU usage (optional)
-- **Resource Limits**: Configurable CPU and memory limits per pod
-- **Security**: Runs as non-root user with security context
-- **High Availability**: 3 replicas with pod disruption budget
-
-### Deployment Structure
-
-```
-deployment/
-├── Dockerfile                  # Multi-stage container build
-├── .dockerignore              # Files excluded from image
-└── k8s/
-    ├── namespace.yaml         # Kubernetes namespace (brix)
-    ├── configmap.yaml         # Non-sensitive configuration
-    ├── secret.yaml            # Secret template (API key, DB credentials)
-    ├── deployment.yaml        # Application deployment (3 replicas)
-    ├── service.yaml           # LoadBalancer service
-    ├── hpa.yaml               # Horizontal pod autoscaler (optional)
-    └── README.md              # Detailed deployment guide
+# Access locally
+kubectl port-forward -n brix svc/brix-pizza 8080:80
 ```
 
-### Prerequisites
+**That's it!** The app is now running at `http://localhost:8080`
 
-- Kubernetes cluster (1.19+)
-- MySQL database (AWS RDS, Google Cloud SQL, or in-cluster)
-- Container registry (Docker Hub, GCR, ECR)
-- kubectl configured
+### What's Included
 
-### Documentation
+- ✅ **MySQL Database** - StatefulSet with persistent storage
+- ✅ **Auto-Scaling** - Horizontal Pod Autoscaler (1-5 replicas)
+- ✅ **Health Checks** - Liveness and readiness probes
+- ✅ **Monitoring** - Prometheus metrics at `/metrics`
+- ✅ **Production-Ready** - Security context, resource limits, graceful shutdown
 
-For detailed deployment instructions, troubleshooting, and production best practices, see **[deployment/k8s/README.md](deployment/k8s/README.md)**.
+### ⚠️ Before Production
+
+The default deployment uses **demo credentials** for quick testing. Before production:
+
+1. Change passwords in `deployment/k8s/mysql/02-secrets.yaml`
+2. Change API key in `deployment/k8s/brix/03-secret.yaml`
+3. Update image tag in `deployment/k8s/brix/04-deployment.yaml`
+
+### Full Documentation
+
+See **[deployment/README.md](deployment/README.md)** for:
+
+- Detailed configuration options
+- Production deployment best practices
+- Troubleshooting guide
+- Ingress/LoadBalancer setup
 
 ## License
 
