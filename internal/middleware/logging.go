@@ -58,37 +58,55 @@ func RequestLogger(next http.Handler) http.Handler {
 		// Calculate duration
 		duration := time.Since(start)
 
-		// Log request completion
-		logEvent := logger.Logger.Info().
-			Str("request_id", requestID).
-			Str("method", r.Method).
-			Str("path", r.URL.Path).
-			Int("status", wrapped.statusCode).
-			Int("bytes", wrapped.bytes).
-			Dur("duration_ms", duration).
-			Str("remote_addr", r.RemoteAddr)
+		// Skip logging health checks and metrics at INFO level (only log at DEBUG)
+		isHealthCheck := r.URL.Path == "/health/live" || r.URL.Path == "/health/ready"
+		isMetrics := r.URL.Path == "/metrics"
 
-		// Add warning/error level for non-2xx responses
+		// Choose log level based on status code and path
 		if wrapped.statusCode >= 500 {
-			logEvent = logger.Logger.Error().
+			// Always log errors
+			logger.Logger.Error().
 				Str("request_id", requestID).
 				Str("method", r.Method).
 				Str("path", r.URL.Path).
 				Int("status", wrapped.statusCode).
 				Int("bytes", wrapped.bytes).
 				Dur("duration_ms", duration).
-				Str("remote_addr", r.RemoteAddr)
+				Str("remote_addr", r.RemoteAddr).
+				Msg("Request completed")
 		} else if wrapped.statusCode >= 400 {
-			logEvent = logger.Logger.Warn().
+			// Always log warnings
+			logger.Logger.Warn().
 				Str("request_id", requestID).
 				Str("method", r.Method).
 				Str("path", r.URL.Path).
 				Int("status", wrapped.statusCode).
 				Int("bytes", wrapped.bytes).
 				Dur("duration_ms", duration).
-				Str("remote_addr", r.RemoteAddr)
+				Str("remote_addr", r.RemoteAddr).
+				Msg("Request completed")
+		} else if isHealthCheck || isMetrics {
+			// Health checks and metrics only at DEBUG level
+			logger.Logger.Debug().
+				Str("request_id", requestID).
+				Str("method", r.Method).
+				Str("path", r.URL.Path).
+				Int("status", wrapped.statusCode).
+				Int("bytes", wrapped.bytes).
+				Dur("duration_ms", duration).
+				Str("remote_addr", r.RemoteAddr).
+				Msg("Request completed")
+		} else {
+			// Normal requests at INFO level
+			logger.Logger.Info().
+				Str("request_id", requestID).
+				Str("method", r.Method).
+				Str("path", r.URL.Path).
+				Int("status", wrapped.statusCode).
+				Int("bytes", wrapped.bytes).
+				Dur("duration_ms", duration).
+				Str("remote_addr", r.RemoteAddr).
+				Msg("Request completed")
 		}
-
-		logEvent.Msg("Request completed")
 	})
 }

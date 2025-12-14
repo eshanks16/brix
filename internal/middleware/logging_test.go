@@ -97,3 +97,48 @@ func TestRequestLogger_BytesTracking(t *testing.T) {
 		t.Errorf("Expected body length %d, got %d", len(responseBody), rec.Body.Len())
 	}
 }
+
+func TestRequestLogger_HealthCheckAndMetrics(t *testing.T) {
+	// Initialize logger for testing
+	logger.Init("info")
+
+	testCases := []struct {
+		name string
+		path string
+	}{
+		{"health check live", "/health/live"},
+		{"health check ready", "/health/ready"},
+		{"metrics endpoint", "/metrics"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create a test handler
+			testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte("OK"))
+			})
+
+			// Wrap with logging middleware
+			handler := RequestLogger(testHandler)
+
+			// Create test request
+			req := httptest.NewRequest("GET", tc.path, nil)
+			rec := httptest.NewRecorder()
+
+			// Execute request - should only log at DEBUG level
+			handler.ServeHTTP(rec, req)
+
+			// Verify response
+			if rec.Code != http.StatusOK {
+				t.Errorf("Expected status 200, got %d", rec.Code)
+			}
+
+			// Verify request ID header was still added
+			requestID := rec.Header().Get("X-Request-ID")
+			if requestID == "" {
+				t.Error("Expected X-Request-ID header to be set")
+			}
+		})
+	}
+}
