@@ -22,8 +22,8 @@ spec:
     spec:
       containers:
       - name: brix-pizza
-        image: eshanks16/brix-pizza:latest
-        imagePullPolicy: Always
+        image: eshanks16/brix-pizza:v1.0.0
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080
           name: http
