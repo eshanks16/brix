@@ -1,0 +1,8 @@
+# Allow gitleaks to use its built-in rules
+[extend]
+useDefault = true
+
+[allowlist]
+paths = [
+  '''^deployment/k8s/mysql/01-secrets\.yaml$'''
+]
