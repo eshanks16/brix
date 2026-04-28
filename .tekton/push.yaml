@@ -22,7 +22,7 @@ spec:
     - name: revision
       value: "{{ revision }}"
     - name: image-name
-      value: quay.io/rh-ee-eshanks/brix
+      value: quay.io/rh-ee-eshanks/brix-pizza
   workspaces:
     - name: source
       volumeClaimTemplate:
