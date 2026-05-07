@@ -1,0 +1,56 @@
+schemaVersion: 2.2.0
+metadata:
+  name: brix-pizza-dev
+  version: 1.0.0
+  displayName: Brix Pizza Development
+  description: Development environment for the Brix Go web application
+
+components:
+  # The Go Runtime for the brix-server
+  - name: go-runtime
+    container:
+      image: quay.io/devspaces/ubi9-toolset:latest
+      memoryLimit: 2Gi
+      mountSources: true
+      endpoints:
+        - name: http-brix
+          targetPort: 8080 # Brix default port
+          exposure: public
+          protocol: http
+        - name: prometheus-metrics
+          targetPort: 9090
+          exposure: internal
+
+  # Persistent storage for your SQLite DB and source code
+  - name: brix-storage
+    volume:
+      size: 5Gi
+
+commands:
+  # Command to download dependencies
+  - id: fetch-deps
+    exec:
+      component: go-runtime
+      commandLine: "go mod download"
+      workingDir: ${PROJECT_SOURCE}
+      group:
+        kind: build
+
+  # Command to run the Brix server in dev mode (uses SQLite by default)
+  - id: run-brix-local
+    exec:
+      component: go-runtime
+      commandLine: "go run main.go"
+      workingDir: ${PROJECT_SOURCE}
+      group:
+        kind: run
+        isDefault: true
+
+  # Command to run tests with the race detector
+  - id: test-brix
+    exec:
+      component: go-runtime
+      commandLine: "go test ./... -race"
+      workingDir: ${PROJECT_SOURCE}
+      group:
+        kind: test
