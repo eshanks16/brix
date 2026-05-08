@@ -17,7 +17,7 @@ components:
           targetPort: 8080 # Brix default port
           exposure: public
           protocol: http
-        - name: prometheus-metrics
+        - name: prom-metrics
           targetPort: 9090
           exposure: internal
 
