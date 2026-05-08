@@ -9,7 +9,7 @@ components:
   # The Go Runtime for the brix-server
   - name: go-runtime
     container:
-      image: quay.io/devspaces/ubi9-toolset:latest
+      image: registry.redhat.io/devspaces/udi-rhel9:latest
       memoryLimit: 2Gi
       mountSources: true
       endpoints:
