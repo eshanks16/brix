@@ -1,0 +1,151 @@
+# MySQL VirtualMachine for OpenShift Virtualization (KubeVirt)
+#
+# Prerequisites:
+#   - OpenShift Virtualization operator installed and running
+#   - CentOS Stream 9 DataSource available in the openshift-virtualization-os-images namespace:
+#       oc get datasource centos-stream9 -n openshift-virtualization-os-images
+#   - mysql-secrets Secret applied (02-secrets.yaml)
+#   - Namespace "brix" exists (01-namespace.yaml)
+#
+# To use RHEL 9 instead of CentOS Stream 9, change the DataSource name to "rhel9"
+# (requires a RHEL subscription entitlement on the cluster).
+#
+# Storage: uses the cluster's default StorageClass. To pin a specific class,
+# add storageClassName under spec.dataVolumeTemplates[].spec.storage.
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: mysql-vm
+  namespace: brix
+  labels:
+    app: mysql
+    component: database
+spec:
+  runStrategy: Always
+  dataVolumeTemplates:
+    - metadata:
+        name: mysql-vm-rootdisk
+      spec:
+        # Clone from the cluster's CentOS Stream 9 golden image managed by OCP-Virt.
+        # The DataSource is kept up-to-date by the cluster automatically.
+        sourceRef:
+          kind: DataSource
+          name: centos-stream9
+          namespace: openshift-virtualization-os-images
+        storage:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 30Gi
+  template:
+    metadata:
+      labels:
+        kubevirt.io/domain: mysql-vm
+        vm.kubevirt.io/name: mysql-vm
+        app: mysql
+    spec:
+      domain:
+        cpu:
+          cores: 2
+          sockets: 1
+          threads: 1
+        memory:
+          guest: 2Gi
+        devices:
+          disks:
+            - name: rootdisk
+              bootOrder: 1
+              disk:
+                bus: virtio
+            - name: cloudinitdisk
+              disk:
+                bus: virtio
+          interfaces:
+            - name: default
+              masquerade: {}
+              # Port must be declared for masquerade NAT to forward traffic
+              # from the pod network into the VM.
+              ports:
+                - name: mysql
+                  port: 3306
+                  protocol: TCP
+          rng: {}
+      networks:
+        - name: default
+          pod: {}
+      volumes:
+        - name: rootdisk
+          dataVolume:
+            name: mysql-vm-rootdisk
+        - name: cloudinitdisk
+          cloudInitNoCloud:
+            userData: |
+              #cloud-config
+              package_update: true
+              packages:
+                - mysql-server
+
+              write_files:
+                - path: /etc/my.cnf.d/brix-custom.cnf
+                  permissions: '0644'
+                  owner: root:root
+                  content: |
+                    [mysqld]
+                    bind-address = 0.0.0.0
+                    character-set-server = utf8mb4
+                    collation-server = utf8mb4_unicode_ci
+
+                - path: /root/init-mysql.sh
+                  permissions: '0700'
+                  owner: root:root
+                  content: |
+                    #!/bin/bash
+                    set -euo pipefail
+
+                    echo "[init-mysql] Waiting for MySQL to start..."
+                    for i in $(seq 1 60); do
+                      mysqladmin ping --silent 2>/dev/null && break || true
+                      sleep 2
+                    done
+
+                    # MySQL Community Server RPMs write a temporary root password to
+                    # /var/log/mysqld.log on first start. CentOS mysql-server starts
+                    # with no root password (auth_socket). Handle both cases.
+                    TEMP_PASS=$(grep 'temporary password' /var/log/mysqld.log 2>/dev/null \
+                      | tail -1 | awk '{print $NF}' || true)
+
+                    SQL="$(cat <<'SQL_BLOCK'
+                    ALTER USER 'root'@'localhost' IDENTIFIED BY 'demo-root-pass-CHANGE-ME';
+                    CREATE DATABASE IF NOT EXISTS brix_pizza
+                      CHARACTER SET utf8mb4
+                      COLLATE utf8mb4_unicode_ci;
+                    CREATE USER IF NOT EXISTS 'brix_user'@'%'
+                      IDENTIFIED WITH mysql_native_password BY 'demo-brix-pass-CHANGE-ME';
+                    GRANT ALL PRIVILEGES ON brix_pizza.* TO 'brix_user'@'%';
+                    FLUSH PRIVILEGES;
+                    SQL_BLOCK
+                    )"
+
+                    if [ -n "$TEMP_PASS" ]; then
+                      echo "$SQL" | mysql -u root -p"${TEMP_PASS}" --connect-expired-password
+                    else
+                      echo "$SQL" | mysql -u root
+                    fi
+
+                    echo "[init-mysql] MySQL initialization complete"
+
+              runcmd:
+                - systemctl enable --now mysqld
+                - /root/init-mysql.sh
+
+              final_message: "Brix MySQL VM ready after $UPTIME seconds"
+      # Allow MySQL to flush and shut down cleanly before the VM is stopped.
+      terminationGracePeriodSeconds: 180
+      readinessProbe:
+        tcpSocket:
+          port: 3306
+        initialDelaySeconds: 120
+        periodSeconds: 15
+        timeoutSeconds: 5
+        failureThreshold: 6
