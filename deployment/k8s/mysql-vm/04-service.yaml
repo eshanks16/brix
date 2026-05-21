@@ -1,0 +1,30 @@
+# Service exposing MySQL port 3306 from the VirtualMachine to the cluster.
+#
+# Named "mysql-service" to match the connection string already encoded in
+# ../mysql/02-secrets.yaml:
+#   brix_user:..@tcp(mysql-service.brix.svc.cluster.local:3306)/brix_pizza
+#
+# ⚠️  Conflict warning: ../mysql/04-mysql-sts.yaml also creates a Service
+# named "mysql-service". If the StatefulSet-based MySQL is running in the
+# same namespace, delete it before applying this file:
+#   oc delete svc mysql-service -n brix
+#
+# KubeVirt labels the virt-launcher pod with vm.kubevirt.io/name matching
+# the VirtualMachine name, which this selector targets.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+  namespace: brix
+  labels:
+    app: mysql
+    component: database
+spec:
+  selector:
+    vm.kubevirt.io/name: mysql-vm
+  ports:
+    - name: mysql
+      port: 3306
+      targetPort: 3306
+      protocol: TCP
+  type: ClusterIP
