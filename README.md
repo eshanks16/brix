@@ -11,6 +11,7 @@ A demo pizza ordering application built with Go and SQLite.
 - Order pizza with customizable toppings (split left/right)
 - 8 different pizza styles (New York, Chicago, Detroit, etc.)
 - View order history
+- **Brix AI chatbot** — floating chat widget powered by any OpenAI-compatible inference server
 - **REST API endpoints** for programmatic access
 - **Structured logging** with zerolog for production-ready observability
 - **Prometheus metrics** for monitoring and alerting
@@ -68,10 +69,15 @@ The application can be configured using the following environment variables:
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `PORT` | No | `8080` | HTTP server port. Useful for Kubernetes deployments. |
+| `PORT` | No | `8080` | HTTP server port. |
 | `LOG_LEVEL` | No | `info` | Logging level: `debug`, `info`, `warn`, `error`, `fatal` |
 | `BRIX_API_KEY` | No | _(none)_ | API key for securing REST API endpoints. If not set, API runs in unsecured mode (dev only). |
-| `DATABASE_URL` | No | SQLite | MySQL connection string in format: `user:password@tcp(host:port)/database` |
+| `DATABASE_URL` | No | SQLite | MySQL connection string: `user:password@tcp(host:port)/database` |
+| `CHATBOT_ENABLED` | No | _(none)_ | Set to any non-empty value (e.g. `true`) to show the Brix chat widget. |
+| `CHATBOT_INFERENCE_URL` | When chatbot enabled | _(none)_ | Full URL to an OpenAI-compatible `/v1/chat/completions` endpoint. |
+| `CHATBOT_MODEL` | No | `brix` | Model ID on the inference server. |
+| `CHATBOT_TOKEN` | No | _(none)_ | Bearer token for inference server authentication. |
+| `CHATBOT_TLS_SKIP_VERIFY` | No | _(none)_ | Set to `true` to skip TLS verification (self-signed certs). |
 
 **Example configuration:**
 ```bash
@@ -208,7 +214,8 @@ brix-pizza/
 │   ├── database/
 │   │   └── database.go         # Database initialization and migrations
 │   ├── handlers/
-│   │   └── handlers.go         # HTML page handlers
+│   │   ├── handlers.go         # HTML page handlers
+│   │   └── chatbot.go          # Brix AI chat proxy handler
 │   ├── logger/
 │   │   └── logger.go           # Structured logging configuration
 │   ├── middleware/
@@ -228,13 +235,15 @@ brix-pizza/
 │   └── orders.html             # Orders dashboard
 ├── static/                      # Static assets
 │   ├── css/
-│   │   └── style.css           # Application styles
+│   │   ├── style.css           # Application styles
+│   │   └── chatbot.css         # Brix chat widget styles
 │   ├── js/
 │   │   ├── price-calculator.js      # Real-time price calculator
 │   │   ├── pizza-visualizer.js      # Interactive pizza builder
 │   │   ├── form-validator.js        # Order form validation
 │   │   ├── registration-validator.js # Registration form validation
-│   │   └── smooth-scroll.js         # Smooth scrolling navigation
+│   │   ├── smooth-scroll.js         # Smooth scrolling navigation
+│   │   └── chatbot.js               # Brix chat widget
 │   ├── img/
 │   │   ├── brix.png            # Mascot image
 │   │   ├── brix2.png           # Alternative mascot
@@ -671,9 +680,40 @@ kubectl port-forward -n brix svc/brix-pizza 8080:80
 
 **That's it!** The app is now running at `http://localhost:8080`
 
+### MySQL via OpenShift Virtualization (optional)
+
+Run MySQL inside a VM instead of a container using OpenShift Virtualization:
+
+```bash
+oc apply -f deployment/k8s/mysql-vm/
+```
+
+See [deployment/k8s/mysql-vm/README.md](deployment/k8s/mysql-vm/README.md) for prerequisites and configuration.
+
+### Enabling the Brix Chatbot
+
+The chat widget is off by default. To enable it, update `deployment/k8s/brix/02-configmap.yaml`:
+
+```yaml
+CHATBOT_ENABLED: "true"
+CHATBOT_INFERENCE_URL: "https://your-model.apps.cluster.example.com/v1/chat/completions"
+CHATBOT_MODEL: "your-model-id"
+CHATBOT_TLS_SKIP_VERIFY: "true"  # only if using self-signed certificates
+```
+
+Add the inference server bearer token to `deployment/k8s/brix/03-secret.yaml`:
+
+```bash
+oc create secret generic brix-pizza-secrets \
+  --from-literal=api-key=$(openssl rand -hex 32) \
+  --from-literal=chatbot-token=<your-token> \
+  -n brix
+```
+
 ### What's Included
 
 - ✅ **MySQL Database** - StatefulSet with persistent storage
+- ✅ **MySQL VM** - OpenShift Virtualization alternative in `deployment/k8s/mysql-vm/`
 - ✅ **Auto-Scaling** - Horizontal Pod Autoscaler (1-5 replicas)
 - ✅ **Health Checks** - Liveness and readiness probes
 - ✅ **Monitoring** - Prometheus metrics at `/metrics`

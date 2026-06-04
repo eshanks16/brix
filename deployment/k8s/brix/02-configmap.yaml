@@ -6,3 +6,14 @@ metadata:
 data:
   PORT: "8080"
   LOG_LEVEL: "info"  # Options: debug, info, warn, error, fatal
+
+  # Chatbot — set CHATBOT_ENABLED to any non-empty value to display the Brix
+  # chat widget. Leave empty (or remove the key) to hide it entirely.
+  CHATBOT_ENABLED: ""
+  # Full URL to an OpenAI-compatible /v1/chat/completions endpoint.
+  # Example: https://my-model.apps.cluster.example.com/v1/chat/completions
+  CHATBOT_INFERENCE_URL: ""
+  # Model ID served by the inference server. Defaults to "brix" if unset.
+  CHATBOT_MODEL: ""
+  # Set to "true" to skip TLS verification for self-signed certificates.
+  CHATBOT_TLS_SKIP_VERIFY: ""
