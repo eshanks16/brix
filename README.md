@@ -725,7 +725,7 @@ The default deployment uses **demo credentials** for quick testing. Before produ
 
 1. Change passwords in `deployment/k8s/mysql/02-secrets.yaml`
 2. Change API key in `deployment/k8s/brix/03-secret.yaml`
-3. Update image tag in `deployment/k8s/brix/04-deployment.yaml`
+3. Update image tag in `deployment/k8s/brix/04-deployment.yaml` (currently `quay.io/rh-ee-eshanks/brix-pizza:v1.1.0`)
 
 ### Full Documentation
 
