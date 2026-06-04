@@ -26,3 +26,6 @@ go.work
 
 # OS
 .DS_Store
+
+# Hugo build output
+public/

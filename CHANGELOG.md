@@ -5,6 +5,41 @@ All notable changes to Brix Pizza will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-06-04
+
+### Added
+
+#### Brix AI Chatbot
+
+- Floating chat widget displayed on every page when `CHATBOT_ENABLED` is set
+- Brix mascot persona with pizza-focused system prompt
+- Proxies to any OpenAI-compatible inference server (`/v1/chat/completions`)
+- Conversation history maintained client-side (last 10 exchanges forwarded for context)
+- Bearer token authentication via `CHATBOT_TOKEN` environment variable
+- TLS skip-verify support via `CHATBOT_TLS_SKIP_VERIFY` for self-signed certificates
+- Structured error logging on all inference failure paths
+- `POST /api/chat` backend handler (`internal/handlers/chatbot.go`)
+- `static/js/chatbot.js` and `static/css/chatbot.css` — vanilla JS, no dependencies
+
+#### OpenShift Virtualization MySQL Deployment
+
+- New `deployment/k8s/mysql-vm/` manifests to run MySQL inside a KubeVirt VirtualMachine
+- CentOS Stream 9 golden image via DataSource in `openshift-virtualization-os-images`
+- Cloud-init bootstrap installs and configures MySQL 8.0 on first boot
+- Same `mysql-service` ClusterIP name as the StatefulSet deployment — no app changes needed
+- README with verification steps, customization options, and tear-down instructions
+
+#### Chatbot Kubernetes Manifests
+
+- `CHATBOT_ENABLED`, `CHATBOT_INFERENCE_URL`, `CHATBOT_MODEL`, `CHATBOT_TLS_SKIP_VERIFY` added to `deployment/k8s/brix/02-configmap.yaml` (empty/disabled by default)
+- `chatbot-token` added to `deployment/k8s/brix/03-secret.yaml`
+- All five chatbot env vars wired into `deployment/k8s/brix/04-deployment.yaml`
+
+### Changed
+
+- `WriteTimeout` increased from 15 s to 60 s to accommodate inference server response times
+- Template parsing now uses a `FuncMap` to expose `chatbotEnabled()` without modifying any handler data structs
+
 ## [1.0.0] - 2024-12-14
 
 ### Added

@@ -34,8 +34,14 @@ func main() {
 	}
 	defer db.Close()
 
-	// Parse templates
-	templates := template.Must(template.ParseGlob("templates/*.html"))
+	// Parse templates with a FuncMap so every template can call chatbotEnabled()
+	// without changing any handler data structs.
+	funcMap := template.FuncMap{
+		"chatbotEnabled": func() bool {
+			return os.Getenv("CHATBOT_ENABLED") != ""
+		},
+	}
+	templates := template.Must(template.New("").Funcs(funcMap).ParseGlob("templates/*.html"))
 
 	// Initialize packages
 	handlers.Init(db, templates)
@@ -53,6 +59,9 @@ func main() {
 	http.HandleFunc("/order", handlers.OrderPageHandler)
 	http.HandleFunc("/place-order", handlers.PlaceOrderHandler)
 	http.HandleFunc("/orders", handlers.OrdersHandler)
+
+	// Chatbot route
+	http.HandleFunc("/api/chat", handlers.ChatHandler)
 
 	// API Routes (v1)
 	http.HandleFunc("/api/v1/menu", api.MenuHandler)
@@ -81,7 +90,7 @@ func main() {
 		Addr:         addr,
 		Handler:      middleware.RequestLogger(middleware.PrometheusMiddleware(http.DefaultServeMux)),
 		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
+		WriteTimeout: 60 * time.Second, // extended for inference server response times
 		IdleTimeout:  60 * time.Second,
 	}
 

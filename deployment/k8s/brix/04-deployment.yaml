@@ -51,6 +51,36 @@ spec:
               name: mysql-secrets
               key: connection-string
               optional: true
+        - name: CHATBOT_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: brix-pizza-config
+              key: CHATBOT_ENABLED
+              optional: true
+        - name: CHATBOT_INFERENCE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: brix-pizza-config
+              key: CHATBOT_INFERENCE_URL
+              optional: true
+        - name: CHATBOT_MODEL
+          valueFrom:
+            configMapKeyRef:
+              name: brix-pizza-config
+              key: CHATBOT_MODEL
+              optional: true
+        - name: CHATBOT_TLS_SKIP_VERIFY
+          valueFrom:
+            configMapKeyRef:
+              name: brix-pizza-config
+              key: CHATBOT_TLS_SKIP_VERIFY
+              optional: true
+        - name: CHATBOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: brix-pizza-secrets
+              key: chatbot-token
+              optional: true
         resources:
           requests:
             cpu: 100m
