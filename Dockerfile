@@ -3,14 +3,10 @@
 # Stage 1: Build using the Red Hat UBI 9 Go toolset.
 # registry.access.redhat.com/ubi9/go-toolset ships gcc and the Go toolchain
 # on a RHEL UBI 9 base — no apk, no musl, full glibc for CGO.
-# Verify the available Go version matches go.mod with:
-#   podman run --rm registry.access.redhat.com/ubi9/go-toolset go version
-# If the toolchain is older than 1.25, pin a newer tag or lower the go
-# directive in go.mod to the version shipped by the image.
-FROM registry.access.redhat.com/ubi9/go-toolset:1.26-builder AS builder
-
-# go-toolset runs as uid 1001 by default; switch to root for the build.
-USER root
+# The official Go image is used only for building — it is discarded by the
+# multi-stage build and does not appear in the final image. Security scanning
+# of the shipped image therefore reflects only the UBI runtime stage below.
+FROM golang:1.26 AS builder
 
 WORKDIR /build
 
