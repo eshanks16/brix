@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
       - name: brix-pizza
-        image: eshanks16/brix-pizza:v1.0.0
+        image: quay.io/rh-ee-eshanks/brix-pizza:v1.1.0
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080
