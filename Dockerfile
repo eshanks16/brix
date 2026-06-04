@@ -22,7 +22,7 @@ COPY . .
 RUN CGO_ENABLED=1 go build -ldflags="-w -s" -o brix-pizza .
 
 # Stage 2: Minimal Red Hat UBI 9 runtime image.
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9
+FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
 # Update all OS packages first to apply the latest security patches, then
 # install runtime dependencies. microdnf clean all removes the package cache
